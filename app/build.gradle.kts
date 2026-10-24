@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.profitmargincalculator"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.2.0"
+        versionCode = 5
+        versionName = "1.3.0"
     }
 
     buildTypes {
@@ -48,19 +48,15 @@ android {
     testOptions {
         unitTests {
             isReturnDefaultValues = true
-            all { test ->
-                test.maxParallelForks = 1
-                test.forkEvery = 0
-                test.maxHeapSize = "128m"
-                test.jvmArgs(
-                    "-XX:+UseSerialGC",
-                    "-Xshare:off",
-                    "-XX:TieredStopAtLevel=1",
-                    "-XX:CICompilerCount=1"
-                )
-            }
         }
     }
+}
+
+tasks.withType<Test>().configureEach {
+    maxParallelForks = 1
+    forkEvery = 0
+    maxHeapSize = "192m"
+    jvmArgs("-XX:+UseSerialGC")
 }
 
 kotlin {
