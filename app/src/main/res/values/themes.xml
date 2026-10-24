@@ -3,8 +3,8 @@
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
-        <item name="postSplashScreenTheme">@style/Theme.ProfitMarginCalculator</item>
+        <item name="postSplashScreenTheme">@style/Theme.MargiQ</item>
     </style>
 
-    <style name="Theme.ProfitMarginCalculator" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.MargiQ" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

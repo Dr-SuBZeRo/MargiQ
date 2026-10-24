@@ -1,0 +1,160 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "entities": [
+      {
+        "tableName": "calculations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `productName` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `ptr` TEXT NOT NULL, `purchaseTaxRate` TEXT NOT NULL, `purchasePriceMode` TEXT NOT NULL, `purchaseTaxClassification` TEXT NOT NULL, `isInputTaxCreditEnabled` INTEGER NOT NULL, `sellingPrice` TEXT NOT NULL, `sellingTaxRate` TEXT NOT NULL, `sellingPriceMode` TEXT NOT NULL, `quantity` INTEGER NOT NULL, `economicPurchaseCost` TEXT NOT NULL, `netSalesRevenue` TEXT NOT NULL, `profitPerUnit` TEXT NOT NULL, `profitMargin` TEXT, `markup` TEXT, `costPercentage` TEXT, `totalProfit` TEXT NOT NULL, `totalPurchaseInvoiceTotal` TEXT NOT NULL, `totalSellingCustomerTotal` TEXT NOT NULL, `calculationBasis` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "productName",
+            "columnName": "productName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ptr",
+            "columnName": "ptr",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "purchaseTaxRate",
+            "columnName": "purchaseTaxRate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "purchasePriceMode",
+            "columnName": "purchasePriceMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "purchaseTaxClassification",
+            "columnName": "purchaseTaxClassification",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isInputTaxCreditEnabled",
+            "columnName": "isInputTaxCreditEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sellingPrice",
+            "columnName": "sellingPrice",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sellingTaxRate",
+            "columnName": "sellingTaxRate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sellingPriceMode",
+            "columnName": "sellingPriceMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quantity",
+            "columnName": "quantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "economicPurchaseCost",
+            "columnName": "economicPurchaseCost",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "netSalesRevenue",
+            "columnName": "netSalesRevenue",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profitPerUnit",
+            "columnName": "profitPerUnit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profitMargin",
+            "columnName": "profitMargin",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "markup",
+            "columnName": "markup",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "costPercentage",
+            "columnName": "costPercentage",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "totalProfit",
+            "columnName": "totalProfit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalPurchaseInvoiceTotal",
+            "columnName": "totalPurchaseInvoiceTotal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalSellingCustomerTotal",
+            "columnName": "totalSellingCustomerTotal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calculationBasis",
+            "columnName": "calculationBasis",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6')"
+    ]
+  }
+}

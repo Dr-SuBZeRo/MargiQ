@@ -1,0 +1,244 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "88dc8ec7da114056a7ac754fca06503a",
+    "entities": [
+      {
+        "tableName": "calculations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `productName` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `ptr` TEXT NOT NULL, `purchaseTaxRate` TEXT NOT NULL, `purchasePriceMode` TEXT NOT NULL, `purchaseTaxClassification` TEXT NOT NULL, `isInputTaxCreditEnabled` INTEGER NOT NULL, `sellingPrice` TEXT NOT NULL, `sellingTaxRate` TEXT NOT NULL, `sellingPriceMode` TEXT NOT NULL, `quantity` INTEGER NOT NULL, `packName` TEXT NOT NULL, `unitName` TEXT NOT NULL, `unitsPerPack` INTEGER NOT NULL, `sellingQuantity` INTEGER NOT NULL, `costPerIndividualUnit` TEXT NOT NULL, `revenuePerIndividualUnit` TEXT NOT NULL, `profitPerIndividualUnit` TEXT NOT NULL, `isSupplierOfferEnabled` INTEGER NOT NULL, `offerBuyQuantity` INTEGER NOT NULL, `offerFreeQuantity` INTEGER NOT NULL, `freePacksReceived` INTEGER NOT NULL, `totalPacksReceived` INTEGER NOT NULL, `supplierDiscountPercent` TEXT NOT NULL, `supplierDiscountAmount` TEXT NOT NULL, `effectiveCostPerReceivedPack` TEXT NOT NULL, `economicPurchaseCost` TEXT NOT NULL, `netSalesRevenue` TEXT NOT NULL, `profitPerUnit` TEXT NOT NULL, `profitMargin` TEXT, `markup` TEXT, `costPercentage` TEXT, `totalProfit` TEXT NOT NULL, `totalPurchaseInvoiceTotal` TEXT NOT NULL, `totalSellingCustomerTotal` TEXT NOT NULL, `calculationBasis` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "productName",
+            "columnName": "productName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ptr",
+            "columnName": "ptr",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "purchaseTaxRate",
+            "columnName": "purchaseTaxRate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "purchasePriceMode",
+            "columnName": "purchasePriceMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "purchaseTaxClassification",
+            "columnName": "purchaseTaxClassification",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isInputTaxCreditEnabled",
+            "columnName": "isInputTaxCreditEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sellingPrice",
+            "columnName": "sellingPrice",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sellingTaxRate",
+            "columnName": "sellingTaxRate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sellingPriceMode",
+            "columnName": "sellingPriceMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quantity",
+            "columnName": "quantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packName",
+            "columnName": "packName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitName",
+            "columnName": "unitName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitsPerPack",
+            "columnName": "unitsPerPack",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sellingQuantity",
+            "columnName": "sellingQuantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "costPerIndividualUnit",
+            "columnName": "costPerIndividualUnit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revenuePerIndividualUnit",
+            "columnName": "revenuePerIndividualUnit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profitPerIndividualUnit",
+            "columnName": "profitPerIndividualUnit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isSupplierOfferEnabled",
+            "columnName": "isSupplierOfferEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "offerBuyQuantity",
+            "columnName": "offerBuyQuantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "offerFreeQuantity",
+            "columnName": "offerFreeQuantity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "freePacksReceived",
+            "columnName": "freePacksReceived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalPacksReceived",
+            "columnName": "totalPacksReceived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supplierDiscountPercent",
+            "columnName": "supplierDiscountPercent",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supplierDiscountAmount",
+            "columnName": "supplierDiscountAmount",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "effectiveCostPerReceivedPack",
+            "columnName": "effectiveCostPerReceivedPack",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "economicPurchaseCost",
+            "columnName": "economicPurchaseCost",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "netSalesRevenue",
+            "columnName": "netSalesRevenue",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profitPerUnit",
+            "columnName": "profitPerUnit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profitMargin",
+            "columnName": "profitMargin",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "markup",
+            "columnName": "markup",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "costPercentage",
+            "columnName": "costPercentage",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "totalProfit",
+            "columnName": "totalProfit",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalPurchaseInvoiceTotal",
+            "columnName": "totalPurchaseInvoiceTotal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalSellingCustomerTotal",
+            "columnName": "totalSellingCustomerTotal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calculationBasis",
+            "columnName": "calculationBasis",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '88dc8ec7da114056a7ac754fca06503a')"
+    ]
+  }
+}

@@ -197,7 +197,7 @@ Issues and pull requests are welcome.
 - **Tagline:** Know your cost. Own your margin.
 - **Creator:** [SuBZeRo](https://github.com/Dr-SuBZeRo)
 - **Repository:** [Dr-SuBZeRo/MargiQ](https://github.com/Dr-SuBZeRo/MargiQ)
-- **Application ID:** `com.example.profitmargincalculator` *(update this if you have changed the package ID locally)*
+- **Application ID:** `com.margiq`
 
 ---
 

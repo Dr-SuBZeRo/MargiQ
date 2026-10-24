@@ -6,14 +6,14 @@ plugins {
 }
 
 android {
-    namespace = "com.example.profitmargincalculator"
+    namespace = "com.margiq"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.profitmargincalculator"
+        applicationId = "com.margiq"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.3.0"
+        versionCode = 6
+        versionName = "2.0"
     }
 
     buildTypes {
