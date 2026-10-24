@@ -16,7 +16,11 @@ data class CalculationInput(
     val packName: String = "Strip",
     val unitName: String = "Tablet",
     val unitsPerPack: Int = 10,
-    val sellingQuantity: Int = 5
+    val sellingQuantity: Int = 5,
+    val isSupplierOfferEnabled: Boolean = false,
+    val offerBuyQuantity: Int = 1,
+    val offerFreeQuantity: Int = 0,
+    val supplierDiscountPercent: BigDecimal = BigDecimal.ZERO
 ) {
     companion object {
         fun defaultExample(): CalculationInput = CalculationInput(
@@ -33,7 +37,11 @@ data class CalculationInput(
             packName = "Strip",
             unitName = "Tablet",
             unitsPerPack = 10,
-            sellingQuantity = 5
+            sellingQuantity = 5,
+            isSupplierOfferEnabled = false,
+            offerBuyQuantity = 1,
+            offerFreeQuantity = 0,
+            supplierDiscountPercent = BigDecimal.ZERO
         )
 
         fun empty(): CalculationInput = CalculationInput(
@@ -50,7 +58,11 @@ data class CalculationInput(
             packName = "Pack",
             unitName = "Unit",
             unitsPerPack = 10,
-            sellingQuantity = 1
+            sellingQuantity = 1,
+            isSupplierOfferEnabled = false,
+            offerBuyQuantity = 1,
+            offerFreeQuantity = 0,
+            supplierDiscountPercent = BigDecimal.ZERO
         )
     }
 }

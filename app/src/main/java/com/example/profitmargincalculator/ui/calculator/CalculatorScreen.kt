@@ -2,7 +2,6 @@ package com.example.profitmargincalculator.ui.calculator
 
 import android.content.Intent
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,14 +11,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
@@ -71,9 +71,8 @@ import com.example.profitmargincalculator.ui.components.SegmentedTaxModeSelector
 import com.example.profitmargincalculator.ui.components.SimpleCashComparisonCard
 import com.example.profitmargincalculator.ui.components.TaxRatePresetsRow
 
-private val PACK_PRESETS = listOf("Strip", "Box", "Bottle", "Pack", "Carton", "Vial")
-private val UNIT_PRESETS = listOf("Tablet", "Capsule", "Piece", "ml", "g", "Sachet")
 private val UNITS_PER_PACK_PRESETS = listOf("1", "10", "15", "30", "100")
+private val DISCOUNT_PRESETS = listOf("0", "2", "5", "10", "15")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,10 +151,10 @@ fun CalculatorScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Live Hero Results Summary
+            // 1. Hero Profitability Summary
             MetricHeroCard(result = uiState.calculationResult)
 
-            // 2. Action Bar: Save, Copy, Share, Reset
+            // 2. Action Bar: Save, Share, Copy
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -209,7 +208,7 @@ fun CalculatorScreen(
                 }
             }
 
-            // 3. Product Info Card
+            // 3. Product Details Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -258,7 +257,7 @@ fun CalculatorScreen(
                 }
             }
 
-            // 4. Pack & Unit Details Card
+            // 4. Units per Pack Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -272,81 +271,16 @@ fun CalculatorScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Pack & Unit Details",
+                        text = "Pack Information",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
 
-                    // Pack Type Field & Presets
-                    OutlinedTextField(
-                        value = uiState.packName,
-                        onValueChange = { viewModel.onPackNameChanged(it) },
-                        label = { Text("Pack Name / Selling Unit") },
-                        placeholder = { Text("e.g. Strip, Box, Bottle, Pack") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        PACK_PRESETS.forEach { preset ->
-                            FilterChip(
-                                selected = uiState.packName.equals(preset, ignoreCase = true),
-                                onClick = { viewModel.onPackNameChanged(preset) },
-                                label = { Text(preset) },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            )
-                        }
-                    }
-
-                    // Individual Unit Field & Presets
-                    OutlinedTextField(
-                        value = uiState.unitName,
-                        onValueChange = { viewModel.onUnitNameChanged(it) },
-                        label = { Text("Individual Unit Name") },
-                        placeholder = { Text("e.g. Tablet, Capsule, Piece, ml") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        UNIT_PRESETS.forEach { preset ->
-                            FilterChip(
-                                selected = uiState.unitName.equals(preset, ignoreCase = true),
-                                onClick = { viewModel.onUnitNameChanged(preset) },
-                                label = { Text(preset) },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                    // Units per Pack Field & Presets
                     CleanNumberInputField(
                         value = uiState.unitsPerPackText,
                         onValueChange = { viewModel.onUnitsPerPackChanged(it) },
-                        label = "Units Per Pack",
-                        suffixText = "${uiState.unitName}s",
-                        helperText = "Number of individual units inside 1 ${uiState.packName}",
+                        label = "Units per Pack",
+                        suffixText = "units",
+                        helperText = "Number of individual units (e.g. tablets, capsules, pieces) inside 1 pack",
                         keyboardType = KeyboardType.Number,
                         imeAction = ImeAction.Next
                     )
@@ -370,46 +304,13 @@ fun CalculatorScreen(
                         }
                     }
 
-                    // Purchase Quantity in Packs
-                    CleanNumberInputField(
-                        value = uiState.quantityText,
-                        onValueChange = { viewModel.onQuantityChanged(it) },
-                        label = "Purchase Quantity (${uiState.packName}s)",
-                        suffixText = "${uiState.packName}s",
-                        helperText = "Number of whole ${uiState.packName.lowercase()}s purchased",
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
-                    )
-
-                    // Selling Quantity in Packs
-                    CleanNumberInputField(
-                        value = uiState.sellingQuantityText,
-                        onValueChange = { viewModel.onSellingQuantityChanged(it) },
-                        label = "Selling Quantity (${uiState.packName}s)",
-                        suffixText = "${uiState.packName}s",
-                        helperText = "Number of ${uiState.packName.lowercase()}s sold to calculate total profit",
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
-                    )
-
-                    // Live Units Calculation Callout
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        val calloutText = if (uiState.calculationResult.isValid) {
-                            val baseInfo = "${uiState.calculationResult.quantity} ${uiState.packName}s × ${uiState.calculationResult.unitsPerPack} ${uiState.unitName}s = ${uiState.calculationResult.totalIndividualUnits} total ${uiState.unitName.lowercase()}s purchased"
-                            if (uiState.calculationResult.sellingQuantity != uiState.calculationResult.quantity) {
-                                "💡 $baseInfo (${uiState.calculationResult.totalIndividualUnitsSold} sold, ${uiState.calculationResult.remainingIndividualUnits} remaining)"
-                            } else {
-                                "💡 $baseInfo"
-                            }
-                        } else {
-                            "💡 Pack configuration: ${uiState.packName} of ${uiState.unitName}s"
-                        }
                         Text(
-                            text = calloutText,
+                            text = "💡 1 pack = ${uiState.calculationResult.unitsPerPack} individual units (used to calculate unit cost & margin)",
                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(10.dp)
@@ -418,7 +319,178 @@ fun CalculatorScreen(
                 }
             }
 
-            // 5. Purchase Side Section Card (PTR, Tax, Mode, ITC)
+            // 5. Supplier Offers & Discounts Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalOffer,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Text(
+                            text = "Supplier Offers & Discounts",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+
+                    // Supplier Discount (%)
+                    CleanNumberInputField(
+                        value = uiState.supplierDiscountText,
+                        onValueChange = { viewModel.onSupplierDiscountChanged(it) },
+                        label = "Supplier Discount (%)",
+                        suffixText = "%",
+                        helperText = "Discount applied to taxable purchase value before purchase GST",
+                        imeAction = ImeAction.Next
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        DISCOUNT_PRESETS.forEach { preset ->
+                            FilterChip(
+                                selected = uiState.supplierDiscountText == preset,
+                                onClick = { viewModel.setQuickSupplierDiscount(preset) },
+                                label = { Text("$preset%") },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    // Enable Buy X, Get Y Free Offer Toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Enable Buy X, Get Y Free Offer",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Supplier provides free packs at zero consideration (GST charged on paid goods only)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Switch(
+                            checked = uiState.isSupplierOfferEnabled,
+                            onCheckedChange = { viewModel.onSupplierOfferToggled(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                    }
+
+                    if (uiState.isSupplierOfferEnabled) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            CleanNumberInputField(
+                                value = uiState.offerBuyQuantityText,
+                                onValueChange = { viewModel.onOfferBuyQuantityChanged(it) },
+                                label = "Buy Quantity (Packs) — X",
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Next,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            CleanNumberInputField(
+                                value = uiState.offerFreeQuantityText,
+                                onValueChange = { viewModel.onOfferFreeQuantityChanged(it) },
+                                label = "Free Quantity (Packs) — Y",
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Next,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        // Offer Presets
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            FilterChip(
+                                selected = uiState.offerBuyQuantityText == "1" && uiState.offerFreeQuantityText == "1",
+                                onClick = { viewModel.setQuickOffer("1", "1") },
+                                label = { Text("Buy 1, Get 1") },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+
+                            FilterChip(
+                                selected = uiState.offerBuyQuantityText == "10" && uiState.offerFreeQuantityText == "2",
+                                onClick = { viewModel.setQuickOffer("10", "2") },
+                                label = { Text("Buy 10, Get 2") },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+
+                            FilterChip(
+                                selected = uiState.offerBuyQuantityText == "5" && uiState.offerFreeQuantityText == "1",
+                                onClick = { viewModel.setQuickOffer("5", "1") },
+                                label = { Text("Buy 5, Get 1") },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "🎁 ${uiState.calculationResult.quantity} paid packs earn ${uiState.calculationResult.freePacksReceived} free packs → ${uiState.calculationResult.totalPacksReceived} total received packs for cost allocation",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 6. Purchase Side Section Card (PTR, Tax, Mode, ITC, Purchase Quantity)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -432,16 +504,16 @@ fun CalculatorScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Purchase Side (PTR per ${uiState.packName})",
+                        text = "Purchase Side (PTR per Pack)",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
 
                     CleanNumberInputField(
                         value = uiState.ptrText,
                         onValueChange = { viewModel.onPtrChanged(it) },
-                        label = "Purchase Price (PTR) per ${uiState.packName}",
+                        label = "Purchase Price (PTR) per Pack",
                         prefixText = "₹",
-                        helperText = "Wholesale or distributor cost for 1 ${uiState.packName}",
+                        helperText = "Wholesale or distributor cost for 1 pack",
                         imeAction = ImeAction.Next
                     )
 
@@ -469,6 +541,17 @@ fun CalculatorScreen(
                     TaxRatePresetsRow(
                         currentRateText = uiState.purchaseTaxRateText,
                         onRateSelected = { viewModel.setQuickPurchaseTaxRate(it) }
+                    )
+
+                    // Purchase Quantity (Packs)
+                    CleanNumberInputField(
+                        value = uiState.quantityText,
+                        onValueChange = { viewModel.onQuantityChanged(it) },
+                        label = "Purchase Quantity (Paid Packs)",
+                        suffixText = "packs",
+                        helperText = "Number of whole packs paid to calculate total invoice and batch economics",
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -532,7 +615,7 @@ fun CalculatorScreen(
                 }
             }
 
-            // 6. Selling Side Section Card (MRP, Tax, Mode)
+            // 7. Selling Side Section Card (MRP, Tax, Mode)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -546,14 +629,14 @@ fun CalculatorScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Selling Side (MRP per ${uiState.packName})",
+                        text = "Selling Side (MRP per Pack)",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
 
                     CleanNumberInputField(
                         value = uiState.sellingPriceText,
                         onValueChange = { viewModel.onSellingPriceChanged(it) },
-                        label = "Selling Price (MRP) per ${uiState.packName}",
+                        label = "Selling Price (MRP) per Pack",
                         prefixText = "₹",
                         helperText = "MRP in India normally includes all applicable taxes",
                         imeAction = ImeAction.Next
@@ -587,17 +670,17 @@ fun CalculatorScreen(
                 }
             }
 
-            // 7. Detailed Financial Breakdown Card
+            // 8. Detailed Financial Breakdown Card
             FinancialBreakdownCard(
                 result = uiState.calculationResult,
                 isExpanded = uiState.showDetailedBreakdown,
                 onToggleExpand = { viewModel.toggleDetailedBreakdown() }
             )
 
-            // 8. Simple Cash Flow Comparison Card
+            // 9. Simple Cash Flow Comparison Card
             SimpleCashComparisonCard(result = uiState.calculationResult)
 
-            // 9. Bottom Form Controls: Reset / Clear
+            // 10. Bottom Form Controls: Reset / Clear
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

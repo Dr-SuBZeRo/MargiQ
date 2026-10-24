@@ -89,7 +89,7 @@ fun MetricHeroCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "ESTIMATED PROFIT PER ${result.packName.uppercase()}",
+                    text = "ESTIMATED PROFIT PER PACK",
                     style = MaterialTheme.typography.labelMedium.copy(
                         letterSpacing = 1.sp,
                         fontWeight = FontWeight.Bold
@@ -117,7 +117,7 @@ fun MetricHeroCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Primary Big Number (Profit per pack)
+            // Primary Big Number (Profit per received pack)
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -137,7 +137,7 @@ fun MetricHeroCard(
 
                 if (result.isValid && result.unitsPerPack > 1) {
                     Text(
-                        text = "(${IndianCurrencyFormatter.formatCurrency(result.roundedProfitPerIndividualUnit)} / ${result.unitName})",
+                        text = "(${IndianCurrencyFormatter.formatCurrency(result.roundedProfitPerIndividualUnit)} / unit)",
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = profitColor,
                         modifier = Modifier.padding(bottom = 6.dp)
@@ -150,6 +150,27 @@ fun MetricHeroCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            // Supplier Offer / Discount Callout if active
+            if (result.isValid && (result.isSupplierOfferEnabled || result.supplierDiscountPercent > java.math.BigDecimal.ZERO)) {
+                Spacer(modifier = Modifier.height(6.dp))
+                val offerNotice = buildString {
+                    if (result.isSupplierOfferEnabled && result.freePacksReceived > 0) {
+                        append("🎁 Offer: Buy ${result.offerBuyQuantity}, Get ${result.offerFreeQuantity} Free (+${result.freePacksReceived} free packs, ${result.totalPacksReceived} total)")
+                    }
+                    if (result.supplierDiscountPercent > java.math.BigDecimal.ZERO) {
+                        if (isNotEmpty()) append(" • ")
+                        append("🏷️ ${IndianCurrencyFormatter.formatPercentage(result.supplierDiscountPercent)} Discount")
+                    }
+                }
+                if (offerNotice.isNotEmpty()) {
+                    Text(
+                        text = offerNotice,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -190,7 +211,7 @@ fun MetricHeroCard(
                 )
 
                 MetricSubItem(
-                    label = "Total Profit (${result.sellingQuantity} ${result.packName}s)",
+                    label = "Total (${result.totalPacksReceived} packs)",
                     value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalProfit),
                     isHighlighted = true,
                     highlightColor = profitColor
@@ -215,7 +236,7 @@ fun MetricHeroCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "1 ${result.packName} = ${result.unitsPerPack} ${result.unitName}s",
+                            text = "1 pack = ${result.unitsPerPack} units (${result.totalIndividualUnits} units total)",
                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -223,7 +244,7 @@ fun MetricHeroCard(
 
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = "Unit Cost & Selling",
+                            text = "Unit Cost & MRP",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

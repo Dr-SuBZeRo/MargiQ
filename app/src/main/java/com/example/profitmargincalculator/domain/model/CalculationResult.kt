@@ -50,6 +50,19 @@ data class CalculationResult(
     val totalEligibleInputTaxCredit: BigDecimal,
     val totalProfit: BigDecimal,
 
+    // Supplier Offers & Discounts
+    val isSupplierOfferEnabled: Boolean = false,
+    val offerBuyQuantity: Int = 1,
+    val offerFreeQuantity: Int = 0,
+    val freePacksReceived: Int = 0,
+    val totalPacksReceived: Int = 1,
+    val supplierDiscountPercent: BigDecimal = BigDecimal.ZERO,
+    val supplierDiscountAmount: BigDecimal = BigDecimal.ZERO,
+    val grossPaidPurchaseValue: BigDecimal = BigDecimal.ZERO,
+
+    val effectiveCostPerReceivedPack: BigDecimal = BigDecimal.ZERO,
+    val effectiveInvoicePerReceivedPack: BigDecimal = BigDecimal.ZERO,
+
     val simpleCashProfitPerUnit: BigDecimal,
     val simpleCashProfitMargin: BigDecimal?,
 
@@ -97,6 +110,19 @@ data class CalculationResult(
 
     val roundedEligibleInputTaxCredit: BigDecimal
         get() = eligibleInputTaxCredit.setScale(2, RoundingMode.HALF_UP)
+
+    // Supplier Offer & Discount rounded accessors
+    val roundedSupplierDiscountAmount: BigDecimal
+        get() = supplierDiscountAmount.setScale(2, RoundingMode.HALF_UP)
+
+    val roundedGrossPaidPurchaseValue: BigDecimal
+        get() = grossPaidPurchaseValue.setScale(2, RoundingMode.HALF_UP)
+
+    val roundedEffectiveCostPerReceivedPack: BigDecimal
+        get() = effectiveCostPerReceivedPack.setScale(2, RoundingMode.HALF_UP)
+
+    val roundedEffectiveInvoicePerReceivedPack: BigDecimal
+        get() = effectiveInvoicePerReceivedPack.setScale(2, RoundingMode.HALF_UP)
 
     // Per-individual-unit rounded accessors
     val roundedCostPerIndividualUnit: BigDecimal
@@ -175,6 +201,16 @@ data class CalculationResult(
             totalOutputTax = BigDecimal.ZERO,
             totalEligibleInputTaxCredit = BigDecimal.ZERO,
             totalProfit = BigDecimal.ZERO,
+            isSupplierOfferEnabled = false,
+            offerBuyQuantity = 1,
+            offerFreeQuantity = 0,
+            freePacksReceived = 0,
+            totalPacksReceived = 1,
+            supplierDiscountPercent = BigDecimal.ZERO,
+            supplierDiscountAmount = BigDecimal.ZERO,
+            grossPaidPurchaseValue = BigDecimal.ZERO,
+            effectiveCostPerReceivedPack = BigDecimal.ZERO,
+            effectiveInvoicePerReceivedPack = BigDecimal.ZERO,
             simpleCashProfitPerUnit = BigDecimal.ZERO,
             simpleCashProfitMargin = null,
             isInputTaxCreditApplied = false,

@@ -37,16 +37,6 @@ class CalculatorViewModel(
         recalculate()
     }
 
-    fun onPackNameChanged(name: String) {
-        _uiState.update { it.copy(packName = name) }
-        recalculate()
-    }
-
-    fun onUnitNameChanged(name: String) {
-        _uiState.update { it.copy(unitName = name) }
-        recalculate()
-    }
-
     fun onUnitsPerPackChanged(value: String) {
         _uiState.update { it.copy(unitsPerPackText = value) }
         recalculate()
@@ -89,6 +79,44 @@ class CalculatorViewModel(
         }
     }
 
+    // --- Supplier Offers & Discounts (v1.2.0) ---
+    fun onSupplierOfferToggled(enabled: Boolean) {
+        _uiState.update { it.copy(isSupplierOfferEnabled = enabled) }
+        recalculate()
+    }
+
+    fun onOfferBuyQuantityChanged(value: String) {
+        _uiState.update { it.copy(offerBuyQuantityText = value) }
+        recalculate()
+    }
+
+    fun onOfferFreeQuantityChanged(value: String) {
+        _uiState.update { it.copy(offerFreeQuantityText = value) }
+        recalculate()
+    }
+
+    fun onSupplierDiscountChanged(value: String) {
+        _uiState.update { it.copy(supplierDiscountText = value) }
+        recalculate()
+    }
+
+    fun setQuickSupplierDiscount(discountPercent: String) {
+        _uiState.update { it.copy(supplierDiscountText = discountPercent) }
+        recalculate()
+    }
+
+    fun setQuickOffer(buyQty: String, freeQty: String) {
+        _uiState.update {
+            it.copy(
+                isSupplierOfferEnabled = true,
+                offerBuyQuantityText = buyQty,
+                offerFreeQuantityText = freeQty
+            )
+        }
+        recalculate()
+    }
+
+    // --- Selling Side ---
     fun onSellingPriceChanged(value: String) {
         _uiState.update { it.copy(sellingPriceText = value) }
         recalculate()
@@ -106,12 +134,19 @@ class CalculatorViewModel(
 
     fun onQuantityChanged(value: String) {
         _uiState.update { it.copy(quantityText = value) }
-        // If selling quantity matches previous purchase quantity or hasn't been decoupled, keep sync
+        recalculate()
+    }
+
+    // Deprecated / Backwards-compatibility stubs
+    fun onPackNameChanged(name: String) {
+        recalculate()
+    }
+
+    fun onUnitNameChanged(name: String) {
         recalculate()
     }
 
     fun onSellingQuantityChanged(value: String) {
-        _uiState.update { it.copy(sellingQuantityText = value) }
         recalculate()
     }
 
@@ -177,12 +212,13 @@ class CalculatorViewModel(
                 sellingTaxRateText = default.sellingTaxRate.toPlainString(),
                 sellingPriceMode = default.sellingPriceMode,
                 quantityText = default.quantity.toString(),
-                packName = default.packName,
-                unitName = default.unitName,
                 unitsPerPackText = default.unitsPerPack.toString(),
-                sellingQuantityText = default.sellingQuantity.toString(),
+                isSupplierOfferEnabled = false,
+                offerBuyQuantityText = "1",
+                offerFreeQuantityText = "1",
+                supplierDiscountText = "0.00",
                 currentSavedId = null,
-                userMessage = "Restored reference calculation (5 strips, 10 tablets/strip)"
+                userMessage = "Restored reference calculation (5 packs, 10 units/pack)"
             )
         }
         recalculate()
@@ -203,10 +239,11 @@ class CalculatorViewModel(
                     sellingTaxRateText = prefs.defaultSellingTaxRate.toPlainString(),
                     sellingPriceMode = prefs.defaultSellingPriceMode,
                     quantityText = prefs.defaultQuantity.toString(),
-                    packName = "Pack",
-                    unitName = "Unit",
                     unitsPerPackText = "10",
-                    sellingQuantityText = prefs.defaultQuantity.toString(),
+                    isSupplierOfferEnabled = false,
+                    offerBuyQuantityText = "1",
+                    offerFreeQuantityText = "1",
+                    supplierDiscountText = "0.00",
                     currentSavedId = null,
                     userMessage = "Reset to saved calculator defaults"
                 )
@@ -221,6 +258,8 @@ class CalculatorViewModel(
                 productName = "",
                 ptrText = "",
                 sellingPriceText = "",
+                supplierDiscountText = "0.00",
+                isSupplierOfferEnabled = false,
                 currentSavedId = null,
                 userMessage = "Form cleared"
             )
@@ -242,10 +281,11 @@ class CalculatorViewModel(
                 sellingTaxRateText = input.sellingTaxRate.toPlainString(),
                 sellingPriceMode = input.sellingPriceMode,
                 quantityText = input.quantity.toString(),
-                packName = input.packName,
-                unitName = input.unitName,
                 unitsPerPackText = input.unitsPerPack.toString(),
-                sellingQuantityText = input.sellingQuantity.toString(),
+                isSupplierOfferEnabled = entity.isSupplierOfferEnabled,
+                offerBuyQuantityText = entity.offerBuyQuantity.toString(),
+                offerFreeQuantityText = entity.offerFreeQuantity.toString(),
+                supplierDiscountText = entity.supplierDiscountPercent,
                 currentSavedId = entity.id,
                 userMessage = "Loaded '${entity.productName}' from history"
             )
@@ -259,6 +299,8 @@ class CalculatorViewModel(
         val purchaseTaxRate = IndianCurrencyFormatter.parseInput(state.purchaseTaxRateText) ?: BigDecimal.ZERO
         val sellingPrice = IndianCurrencyFormatter.parseInput(state.sellingPriceText) ?: BigDecimal.ZERO
         val sellingTaxRate = IndianCurrencyFormatter.parseInput(state.sellingTaxRateText) ?: BigDecimal.ZERO
+        val supplierDiscount = IndianCurrencyFormatter.parseInput(state.supplierDiscountText) ?: BigDecimal.ZERO
+
         val quantity = when {
             state.quantityText.isBlank() -> 0
             state.quantityText.toLongOrNull() != null && state.quantityText.toLong() > Int.MAX_VALUE -> Int.MAX_VALUE
@@ -269,10 +311,15 @@ class CalculatorViewModel(
             state.unitsPerPackText.toLongOrNull() != null && state.unitsPerPackText.toLong() > Int.MAX_VALUE -> Int.MAX_VALUE
             else -> state.unitsPerPackText.toIntOrNull() ?: -1
         }
-        val sellingQuantity = when {
-            state.sellingQuantityText.isBlank() -> 0
-            state.sellingQuantityText.toLongOrNull() != null && state.sellingQuantityText.toLong() > Int.MAX_VALUE -> Int.MAX_VALUE
-            else -> state.sellingQuantityText.toIntOrNull() ?: -1
+        val offerBuyQty = when {
+            state.offerBuyQuantityText.isBlank() -> 0
+            state.offerBuyQuantityText.toLongOrNull() != null && state.offerBuyQuantityText.toLong() > Int.MAX_VALUE -> Int.MAX_VALUE
+            else -> state.offerBuyQuantityText.toIntOrNull() ?: -1
+        }
+        val offerFreeQty = when {
+            state.offerFreeQuantityText.isBlank() -> 0
+            state.offerFreeQuantityText.toLongOrNull() != null && state.offerFreeQuantityText.toLong() > Int.MAX_VALUE -> Int.MAX_VALUE
+            else -> state.offerFreeQuantityText.toIntOrNull() ?: -1
         }
 
         val input = CalculationInput(
@@ -286,10 +333,11 @@ class CalculatorViewModel(
             sellingTaxRate = sellingTaxRate,
             sellingPriceMode = state.sellingPriceMode,
             quantity = quantity,
-            packName = state.packName.ifBlank { "Pack" },
-            unitName = state.unitName.ifBlank { "Unit" },
             unitsPerPack = unitsPerPack,
-            sellingQuantity = sellingQuantity
+            isSupplierOfferEnabled = state.isSupplierOfferEnabled,
+            offerBuyQuantity = offerBuyQty,
+            offerFreeQuantity = offerFreeQty,
+            supplierDiscountPercent = supplierDiscount
         )
 
         val result = ProfitCalculationEngine.calculate(input)

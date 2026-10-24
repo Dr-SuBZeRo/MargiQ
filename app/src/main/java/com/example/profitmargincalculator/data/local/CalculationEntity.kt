@@ -33,6 +33,16 @@ data class CalculationEntity(
     val revenuePerIndividualUnit: String = "0.00",
     val profitPerIndividualUnit: String = "0.00",
 
+    // Supplier Offers & Discounts (v1.2.0)
+    val isSupplierOfferEnabled: Boolean = false,
+    val offerBuyQuantity: Int = 1,
+    val offerFreeQuantity: Int = 0,
+    val freePacksReceived: Int = 0,
+    val totalPacksReceived: Int = 1,
+    val supplierDiscountPercent: String = "0.00",
+    val supplierDiscountAmount: String = "0.00",
+    val effectiveCostPerReceivedPack: String = "0.00",
+
     val economicPurchaseCost: String,
     val netSalesRevenue: String,
     val profitPerUnit: String,
@@ -59,7 +69,11 @@ data class CalculationEntity(
             packName = packName,
             unitName = unitName,
             unitsPerPack = unitsPerPack,
-            sellingQuantity = sellingQuantity
+            sellingQuantity = sellingQuantity,
+            isSupplierOfferEnabled = isSupplierOfferEnabled,
+            offerBuyQuantity = offerBuyQuantity,
+            offerFreeQuantity = offerFreeQuantity,
+            supplierDiscountPercent = try { BigDecimal(supplierDiscountPercent) } catch (_: Exception) { BigDecimal.ZERO }
         )
     }
 
@@ -85,6 +99,14 @@ data class CalculationEntity(
                 costPerIndividualUnit = result.roundedCostPerIndividualUnit.toPlainString(),
                 revenuePerIndividualUnit = result.roundedNetRevenuePerIndividualUnit.toPlainString(),
                 profitPerIndividualUnit = result.roundedProfitPerIndividualUnit.toPlainString(),
+                isSupplierOfferEnabled = result.isSupplierOfferEnabled,
+                offerBuyQuantity = result.offerBuyQuantity,
+                offerFreeQuantity = result.offerFreeQuantity,
+                freePacksReceived = result.freePacksReceived,
+                totalPacksReceived = result.totalPacksReceived,
+                supplierDiscountPercent = result.supplierDiscountPercent.toPlainString(),
+                supplierDiscountAmount = result.roundedSupplierDiscountAmount.toPlainString(),
+                effectiveCostPerReceivedPack = result.roundedEffectiveCostPerReceivedPack.toPlainString(),
                 economicPurchaseCost = result.roundedEconomicCost.toPlainString(),
                 netSalesRevenue = result.roundedNetSalesRevenue.toPlainString(),
                 profitPerUnit = result.roundedProfitPerUnit.toPlainString(),

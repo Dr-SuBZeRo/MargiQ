@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.profitmargincalculator"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.1.1"
+        versionCode = 4
+        versionName = "1.2.0"
     }
 
     buildTypes {
@@ -74,6 +74,7 @@ dependencies {
 
   // Core Android dependencies
   implementation(libs.androidx.core.ktx)
+  implementation(libs.androidx.core.splashscreen)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)
 

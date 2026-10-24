@@ -307,12 +307,12 @@ fun HistoryItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text(text = "PTR (${entity.packName})", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "PTR (Pack)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(text = "₹${entity.ptr}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
                 }
 
                 Column {
-                    Text(text = "MRP (${entity.packName})", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "MRP (Pack)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(text = "₹${entity.sellingPrice}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
                 }
 
@@ -328,7 +328,8 @@ fun HistoryItemCard(
                 }
 
                 Column {
-                    Text(text = "Total (${entity.sellingQuantity} ${entity.packName}s)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val packCount = if (entity.totalPacksReceived > 1) entity.totalPacksReceived else entity.quantity
+                    Text(text = "Total ($packCount packs)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "₹${entity.totalProfit}",
                         style = MaterialTheme.typography.bodyMedium.copy(
@@ -339,6 +340,25 @@ fun HistoryItemCard(
                 }
             }
 
+            if (entity.isSupplierOfferEnabled || (entity.supplierDiscountPercent.toDoubleOrNull() ?: 0.0) > 0.0) {
+                Spacer(modifier = Modifier.height(6.dp))
+                val badgeText = buildString {
+                    if (entity.isSupplierOfferEnabled) {
+                        append("🎁 Buy ${entity.offerBuyQuantity}, Get ${entity.offerFreeQuantity} Free")
+                    }
+                    val disc = entity.supplierDiscountPercent.toDoubleOrNull() ?: 0.0
+                    if (disc > 0.0) {
+                        if (isNotEmpty()) append(" • ")
+                        append("🏷️ ${entity.supplierDiscountPercent}% Disc")
+                    }
+                }
+                Text(
+                    text = badgeText,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
             if (entity.unitsPerPack > 1) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
@@ -346,12 +366,12 @@ fun HistoryItemCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Pack: 1 ${entity.packName} = ${entity.unitsPerPack} ${entity.unitName}s (${entity.quantity * entity.unitsPerPack} total)",
+                        text = "Pack: 1 pack = ${entity.unitsPerPack} units",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "₹${entity.profitPerIndividualUnit} profit/${entity.unitName}",
+                        text = "₹${entity.profitPerIndividualUnit} profit/unit",
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,

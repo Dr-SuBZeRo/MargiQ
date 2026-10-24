@@ -69,7 +69,7 @@ fun FinancialBreakdownCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = if (isExpanded) "Tap to collapse detailed accounting" else "Tap to view tax & revenue accounting breakdown",
+                        text = if (isExpanded) "Tap to collapse detailed accounting" else "Tap to view supplier, tax & revenue accounting breakdown",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -95,25 +95,43 @@ fun FinancialBreakdownCard(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // SECTION 1: PURCHASE SIDE
-                    BreakdownSectionHeader(title = "PURCHASE ACCOUNTING (PER PACK)")
-                    BreakdownLineItem(label = "Entered PTR", value = IndianCurrencyFormatter.formatCurrency(result.enteredPtr))
+                    // SECTION 1: PURCHASE & SUPPLIER BENEFIT ACCOUNTING
+                    BreakdownSectionHeader(title = "PURCHASE & SUPPLIER BENEFIT ACCOUNTING")
+                    BreakdownLineItem(label = "Original PTR per Pack", value = IndianCurrencyFormatter.formatCurrency(result.enteredPtr))
+                    if (result.supplierDiscountPercent > java.math.BigDecimal.ZERO) {
+                        BreakdownLineItem(label = "Supplier Discount Rate", value = IndianCurrencyFormatter.formatPercentage(result.supplierDiscountPercent))
+                        BreakdownLineItem(label = "Supplier Discount Amount", value = "-${IndianCurrencyFormatter.formatCurrency(result.roundedSupplierDiscountAmount)}", highlightColor = financeColors.profit)
+                    }
                     BreakdownLineItem(label = "Purchase Tax Rate", value = IndianCurrencyFormatter.formatPercentage(result.purchaseTaxRate))
-                    BreakdownLineItem(label = "Taxable Purchase Base", value = IndianCurrencyFormatter.formatCurrency(result.taxablePurchaseBase))
-                    BreakdownLineItem(label = "Purchase GST / Tax", value = IndianCurrencyFormatter.formatCurrency(result.purchaseTaxAmount))
+                    BreakdownLineItem(label = "Taxable Purchase Base (Per Paid Pack)", value = IndianCurrencyFormatter.formatCurrency(result.taxablePurchaseBase))
+                    BreakdownLineItem(label = "Purchase GST / Tax (Per Paid Pack)", value = IndianCurrencyFormatter.formatCurrency(result.purchaseTaxAmount))
                     BreakdownLineItem(
-                        label = "Purchase Invoice Total (Cash Paid)",
-                        value = IndianCurrencyFormatter.formatCurrency(result.roundedPurchaseInvoice),
+                        label = "Supplier Invoice Total (Cash Paid)",
+                        value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalPurchaseInvoice),
                         isBold = true
                     )
                     BreakdownLineItem(
                         label = "Eligible Input Tax Credit (ITC)",
-                        value = IndianCurrencyFormatter.formatCurrency(result.roundedEligibleInputTaxCredit),
+                        value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalInputCredit),
                         highlightColor = if (result.isInputTaxCreditApplied) financeColors.profit else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     BreakdownLineItem(
-                        label = "Economic Purchase Cost (for profit)",
-                        value = IndianCurrencyFormatter.formatCurrency(result.roundedEconomicCost),
+                        label = "Total Economic Purchase Cost",
+                        value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalEconomicCost),
+                        isBold = true
+                    )
+
+                    if (result.isSupplierOfferEnabled) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        BreakdownLineItem(label = "Supplier Offer", value = "Buy ${result.offerBuyQuantity}, Get ${result.offerFreeQuantity} Free")
+                        BreakdownLineItem(label = "Paid Packs", value = "${result.quantity}")
+                        BreakdownLineItem(label = "Free Packs Received", value = "+${result.freePacksReceived}", highlightColor = financeColors.profit)
+                        BreakdownLineItem(label = "Total Received Packs", value = "${result.totalPacksReceived}", isBold = true)
+                    }
+
+                    BreakdownLineItem(
+                        label = "Effective Cost Per Received Pack",
+                        value = IndianCurrencyFormatter.formatCurrency(result.roundedEffectiveCostPerReceivedPack),
                         isBold = true,
                         highlightColor = MaterialTheme.colorScheme.primary
                     )
@@ -126,7 +144,7 @@ fun FinancialBreakdownCard(
                     BreakdownSectionHeader(title = "SELLING & REVENUE ACCOUNTING (PER PACK)")
                     BreakdownLineItem(label = "Entered Selling Price (MRP)", value = IndianCurrencyFormatter.formatCurrency(result.enteredSellingPrice))
                     BreakdownLineItem(label = "Selling Tax Rate", value = IndianCurrencyFormatter.formatPercentage(result.sellingTaxRate))
-                    BreakdownLineItem(label = "Output GST Collected", value = IndianCurrencyFormatter.formatCurrency(result.roundedSellingTaxAmount))
+                    BreakdownLineItem(label = "Output GST Embedded / Collected", value = IndianCurrencyFormatter.formatCurrency(result.roundedSellingTaxAmount))
                     BreakdownLineItem(
                         label = "Customer Selling Price",
                         value = IndianCurrencyFormatter.formatCurrency(result.roundedCustomerSellingPrice),
@@ -146,26 +164,33 @@ fun FinancialBreakdownCard(
                     // SECTION 3: PROFIT & MARGIN RATIOS
                     BreakdownSectionHeader(title = "MARGIN & MARKUP RATIOS")
                     BreakdownLineItem(
-                        label = "Profit Per ${result.packName}",
+                        label = "Profit Per Received Pack",
                         value = IndianCurrencyFormatter.formatCurrency(result.roundedProfitPerUnit),
                         isBold = true,
                         highlightColor = if (result.isLoss) financeColors.loss else financeColors.profit
                     )
+                    if (result.unitsPerPack > 1) {
+                        BreakdownLineItem(
+                            label = "Profit Per Individual Unit",
+                            value = IndianCurrencyFormatter.formatCurrency(result.roundedProfitPerIndividualUnit),
+                            highlightColor = if (result.isLoss) financeColors.loss else financeColors.profit
+                        )
+                    }
                     BreakdownLineItem(label = "Profit Margin (Profit ÷ Revenue)", value = IndianCurrencyFormatter.formatPercentage(result.roundedProfitMargin))
                     BreakdownLineItem(label = "Markup (Profit ÷ Economic Cost)", value = IndianCurrencyFormatter.formatPercentage(result.roundedMarkup))
                     BreakdownLineItem(label = "Cost % of Revenue (Cost ÷ Revenue)", value = IndianCurrencyFormatter.formatPercentage(result.roundedCostPercentage))
 
-                    if (result.quantity > 1 || result.sellingQuantity > 1 || result.sellingQuantity != result.quantity) {
+                    if (result.quantity > 1 || result.totalPacksReceived > 1) {
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(modifier = Modifier.height(12.dp))
 
                         // SECTION 4: MULTI-PACK TOTALS
-                        BreakdownSectionHeader(title = "TOTALS (${result.quantity} ${result.packName}s purchased, ${result.sellingQuantity} sold)")
-                        BreakdownLineItem(label = "Total Purchase Invoice Amount", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalPurchaseInvoice))
+                        BreakdownSectionHeader(title = "BATCH TOTALS (${result.quantity} packs paid, ${result.totalPacksReceived} received)")
+                        BreakdownLineItem(label = "Total Purchase Outlay (Payable to Supplier)", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalPurchaseInvoice))
                         BreakdownLineItem(label = "Total Economic Purchase Cost", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalEconomicCost))
                         BreakdownLineItem(label = "Total Eligible Input Tax Credit", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalInputCredit))
-                        BreakdownLineItem(label = "Total Customer Amount Collected", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalCustomerCollection))
+                        BreakdownLineItem(label = "Total Customer Collection (${result.totalPacksReceived} packs)", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalCustomerCollection))
                         BreakdownLineItem(label = "Total Net Sales Revenue", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalNetSalesRevenue))
                         BreakdownLineItem(label = "Total Output GST Payable", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalOutputTax))
                         BreakdownLineItem(
@@ -178,7 +203,7 @@ fun FinancialBreakdownCard(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Tax note banner
+                    // Tax & Free-Goods note banner
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -198,7 +223,7 @@ fun FinancialBreakdownCard(
                             )
                             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                             Text(
-                                text = "Note: Business profit is calculated from tax-adjusted net revenue and economic cost. GST collected is remitted to the government and not counted as profit. In recoverable GST with ITC enabled, input GST is credited back and deducted from your cost.",
+                                text = "Note: Business profit is calculated from tax-adjusted net revenue and effective economic cost. GST is charged only on discounted paid-goods consideration; free goods receive zero additional purchase consideration. In recoverable GST with ITC enabled, input GST is credited back and excluded from cost. Actual supplier invoicing and free-goods GST treatment depend on statutory regulations and invoice structures.",
                                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

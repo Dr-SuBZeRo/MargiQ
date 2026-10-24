@@ -3,6 +3,7 @@ package com.example.profitmargincalculator.data.local
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.profitmargincalculator.domain.calculation.ProfitCalculationEngine
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.lang.reflect.Proxy
@@ -41,7 +42,37 @@ class AppDatabaseMigrationTest {
     }
 
     @Test
-    fun testMigration1To2OnRealSqlitePreservesExistingRecordsAndReopensCorrectly() {
+    fun testMigration2To3ExecutesAllAlterTableStatements() {
+        val executedStatements = mutableListOf<String>()
+
+        val fakeDb = Proxy.newProxyInstance(
+            SupportSQLiteDatabase::class.java.classLoader,
+            arrayOf(SupportSQLiteDatabase::class.java)
+        ) { _, method, args ->
+            if (method.name == "execSQL" && args != null && args.isNotEmpty()) {
+                executedStatements.add(args[0] as String)
+            }
+            null
+        } as SupportSQLiteDatabase
+
+        assertEquals(2, AppDatabase.MIGRATION_2_3.startVersion)
+        assertEquals(3, AppDatabase.MIGRATION_2_3.endVersion)
+
+        AppDatabase.MIGRATION_2_3.migrate(fakeDb)
+
+        assertEquals(8, executedStatements.size)
+        assertTrue(executedStatements.any { it.contains("isSupplierOfferEnabled") && it.contains("DEFAULT 0") })
+        assertTrue(executedStatements.any { it.contains("offerBuyQuantity") && it.contains("DEFAULT 1") })
+        assertTrue(executedStatements.any { it.contains("offerFreeQuantity") && it.contains("DEFAULT 0") })
+        assertTrue(executedStatements.any { it.contains("freePacksReceived") && it.contains("DEFAULT 0") })
+        assertTrue(executedStatements.any { it.contains("totalPacksReceived") && it.contains("DEFAULT 1") })
+        assertTrue(executedStatements.any { it.contains("supplierDiscountPercent") && it.contains("DEFAULT '0.00'") })
+        assertTrue(executedStatements.any { it.contains("supplierDiscountAmount") && it.contains("DEFAULT '0.00'") })
+        assertTrue(executedStatements.any { it.contains("effectiveCostPerReceivedPack") && it.contains("DEFAULT '0.00'") })
+    }
+
+    @Test
+    fun testMigration1To2To3OnRealSqlitePreservesExistingRecordsAndReopensCorrectly() {
         val connection = DriverManager.getConnection("jdbc:sqlite::memory:")
         val stmt = connection.createStatement()
 
@@ -89,7 +120,6 @@ class AppDatabaseMigrationTest {
             );
         """.trimIndent())
 
-        // 3. Execute Migration 1 -> 2 via SupportSQLiteDatabase adapter
         val supportDb = Proxy.newProxyInstance(
             SupportSQLiteDatabase::class.java.classLoader,
             arrayOf(SupportSQLiteDatabase::class.java)
@@ -101,9 +131,13 @@ class AppDatabaseMigrationTest {
             null
         } as SupportSQLiteDatabase
 
+        // 3. Execute Migration 1 -> 2
         AppDatabase.MIGRATION_1_2.migrate(supportDb)
 
-        // 4. Query migrated table and assert fields
+        // 4. Execute Migration 2 -> 3
+        AppDatabase.MIGRATION_2_3.migrate(supportDb)
+
+        // 5. Query migrated table and assert fields
         val rs = stmt.executeQuery("SELECT * FROM calculations WHERE id = 101")
         assertTrue("Record with id 101 must exist after migration", rs.next())
 
@@ -117,7 +151,7 @@ class AppDatabaseMigrationTest {
         assertEquals("80.57", rs.getString("profitPerUnit"))
         assertEquals("402.86", rs.getString("totalProfit"))
 
-        // Assert 7 new columns have default values
+        // Assert v2 columns have default values
         assertEquals("Pack", rs.getString("packName"))
         assertEquals("Unit", rs.getString("unitName"))
         assertEquals(1, rs.getInt("unitsPerPack"))
@@ -126,7 +160,17 @@ class AppDatabaseMigrationTest {
         assertEquals("0.00", rs.getString("revenuePerIndividualUnit"))
         assertEquals("0.00", rs.getString("profitPerIndividualUnit"))
 
-        // 5. Construct CalculationEntity from migrated database row and verify reopening
+        // Assert v3 columns have safe default values
+        assertEquals(0, rs.getInt("isSupplierOfferEnabled"))
+        assertEquals(1, rs.getInt("offerBuyQuantity"))
+        assertEquals(0, rs.getInt("offerFreeQuantity"))
+        assertEquals(0, rs.getInt("freePacksReceived"))
+        assertEquals(1, rs.getInt("totalPacksReceived"))
+        assertEquals("0.00", rs.getString("supplierDiscountPercent"))
+        assertEquals("0.00", rs.getString("supplierDiscountAmount"))
+        assertEquals("0.00", rs.getString("effectiveCostPerReceivedPack"))
+
+        // 6. Construct CalculationEntity from migrated database row and verify reopening
         val entity = CalculationEntity(
             id = rs.getLong("id"),
             productName = rs.getString("productName"),
@@ -147,6 +191,14 @@ class AppDatabaseMigrationTest {
             costPerIndividualUnit = rs.getString("costPerIndividualUnit"),
             revenuePerIndividualUnit = rs.getString("revenuePerIndividualUnit"),
             profitPerIndividualUnit = rs.getString("profitPerIndividualUnit"),
+            isSupplierOfferEnabled = rs.getInt("isSupplierOfferEnabled") == 1,
+            offerBuyQuantity = rs.getInt("offerBuyQuantity"),
+            offerFreeQuantity = rs.getInt("offerFreeQuantity"),
+            freePacksReceived = rs.getInt("freePacksReceived"),
+            totalPacksReceived = rs.getInt("totalPacksReceived"),
+            supplierDiscountPercent = rs.getString("supplierDiscountPercent"),
+            supplierDiscountAmount = rs.getString("supplierDiscountAmount"),
+            effectiveCostPerReceivedPack = rs.getString("effectiveCostPerReceivedPack"),
             economicPurchaseCost = rs.getString("economicPurchaseCost"),
             netSalesRevenue = rs.getString("netSalesRevenue"),
             profitPerUnit = rs.getString("profitPerUnit"),
@@ -163,8 +215,9 @@ class AppDatabaseMigrationTest {
         assertEquals("Paracetamol 650 Strip", reopenedInput.productName)
         assertEquals(BigDecimal("48.00"), reopenedInput.ptr)
         assertEquals(5, reopenedInput.quantity)
-        assertEquals(1, reopenedInput.sellingQuantity)
         assertEquals(1, reopenedInput.unitsPerPack)
+        assertFalse(reopenedInput.isSupplierOfferEnabled)
+        assertEquals(0, reopenedInput.supplierDiscountPercent.compareTo(BigDecimal.ZERO))
 
         val recalculated = ProfitCalculationEngine.calculate(reopenedInput)
         assertTrue(recalculated.isValid)

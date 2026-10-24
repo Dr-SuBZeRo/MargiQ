@@ -588,4 +588,367 @@ class ProfitCalculationEngineTest {
         assertFalse(result.isValid)
         assertEquals("Selling quantity cannot be negative.", result.validationMessage)
     }
+
+    // ==========================================
+    // MargiQ v1.2.0 Supplier Offer Regression Tests
+    // ==========================================
+
+    @Test
+    fun testSupplierOfferDisabled_BaselineCalculationsUnchanged() {
+        val disabledOfferInput = CalculationInput(
+            ptr = BigDecimal("100.00"),
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = BigDecimal("150.00"),
+            sellingTaxRate = BigDecimal("5.00"),
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            quantity = 5,
+            unitsPerPack = 10,
+            isSupplierOfferEnabled = false,
+            offerBuyQuantity = 1,
+            offerFreeQuantity = 1,
+            supplierDiscountPercent = BigDecimal.ZERO
+        )
+
+        val result = ProfitCalculationEngine.calculate(disabledOfferInput)
+        assertTrue(result.isValid)
+        assertEquals(0, result.freePacksReceived)
+        assertEquals(5, result.totalPacksReceived)
+        assertEquals(BigDecimal("100.00"), result.roundedEconomicCost)
+        assertEquals(BigDecimal("100.00"), result.roundedEffectiveCostPerReceivedPack)
+        assertEquals(BigDecimal("10.00"), result.roundedCostPerIndividualUnit)
+    }
+
+    @Test
+    fun testSupplierOffer_Buy1Get1Free_Phase2Scenario_RecoverableAndNonRecoverable() {
+        // Recoverable GST with ITC enabled
+        val recoverableInput = CalculationInput(
+            ptr = BigDecimal("100.00"),
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = BigDecimal("150.00"),
+            sellingTaxRate = BigDecimal("5.00"),
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            quantity = 1,
+            unitsPerPack = 10,
+            isSupplierOfferEnabled = true,
+            offerBuyQuantity = 1,
+            offerFreeQuantity = 1,
+            supplierDiscountPercent = BigDecimal.ZERO
+        )
+
+        val recResult = ProfitCalculationEngine.calculate(recoverableInput)
+        assertTrue(recResult.isValid)
+        assertEquals(1, recResult.quantity)
+        assertEquals(1, recResult.freePacksReceived)
+        assertEquals(2, recResult.totalPacksReceived)
+
+        // Paid purchase value before GST: ₹100, GST = ₹5, Supplier invoice total = ₹105
+        assertEquals(BigDecimal("100.00"), recResult.taxablePurchaseBase.setScale(2))
+        assertEquals(BigDecimal("5.00"), recResult.purchaseTaxAmount.setScale(2))
+        assertEquals(BigDecimal("105.00"), recResult.roundedPurchaseInvoice)
+        assertEquals(BigDecimal("105.00"), recResult.roundedTotalPurchaseInvoice)
+
+        // Effective pre-GST cost per received pack when ₹5 purchase GST is fully recoverable: ₹50.00
+        assertEquals(BigDecimal("50.00"), recResult.roundedEffectiveCostPerReceivedPack)
+        assertEquals(BigDecimal("5.00"), recResult.roundedCostPerIndividualUnit)
+
+        // Selling economics per pack: Net revenue = 150 / 1.05 = 142.86
+        assertEquals(BigDecimal("142.86"), recResult.roundedNetSalesRevenue)
+        assertEquals(BigDecimal("92.86"), recResult.roundedProfitPerUnit)
+        assertEquals(BigDecimal("9.29"), recResult.roundedProfitPerIndividualUnit)
+        assertEquals(BigDecimal("185.71"), recResult.roundedTotalProfit)
+
+        // Non-recoverable GST (no ITC)
+        val nonRecInput = recoverableInput.copy(
+            purchaseTaxClassification = PurchaseTaxClassification.NON_RECOVERABLE,
+            isInputTaxCreditEnabled = false
+        )
+        val nonRecResult = ProfitCalculationEngine.calculate(nonRecInput)
+        assertTrue(nonRecResult.isValid)
+        // Total effective purchase cost per received pack, including non-recoverable GST: ₹52.50
+        assertEquals(BigDecimal("52.50"), nonRecResult.roundedEffectiveCostPerReceivedPack)
+        assertEquals(BigDecimal("5.25"), nonRecResult.roundedCostPerIndividualUnit)
+        assertEquals(BigDecimal("90.36"), nonRecResult.roundedProfitPerUnit)
+        assertEquals(BigDecimal("9.04"), nonRecResult.roundedProfitPerIndividualUnit)
+        assertEquals(BigDecimal("180.71"), nonRecResult.roundedTotalProfit)
+    }
+
+    @Test
+    fun testSupplierOffer_Buy10Get2Free_MultipleCycles_10_and_20_PaidPacks() {
+        val baseOfferInput = CalculationInput(
+            ptr = BigDecimal("100.00"),
+            purchaseTaxRate = BigDecimal("0.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            sellingPrice = BigDecimal("150.00"),
+            sellingTaxRate = BigDecimal("0.00"),
+            sellingPriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            unitsPerPack = 10,
+            isSupplierOfferEnabled = true,
+            offerBuyQuantity = 10,
+            offerFreeQuantity = 2,
+            supplierDiscountPercent = BigDecimal.ZERO
+        )
+
+        // Cycle 1: Paid quantity = 10 packs -> 2 free packs earned -> 12 total packs
+        val tenPaidInput = baseOfferInput.copy(quantity = 10)
+        val tenResult = ProfitCalculationEngine.calculate(tenPaidInput)
+        assertTrue(tenResult.isValid)
+        assertEquals(10, tenResult.quantity)
+        assertEquals(2, tenResult.freePacksReceived)
+        assertEquals(12, tenResult.totalPacksReceived)
+        // 1000 total outlay / 12 = 83.3333333333
+        assertEquals(BigDecimal("83.33"), tenResult.roundedEffectiveCostPerReceivedPack)
+
+        // Cycle 2: Paid quantity = 20 packs -> 4 free packs earned -> 24 total packs
+        val twentyPaidInput = baseOfferInput.copy(quantity = 20)
+        val twentyResult = ProfitCalculationEngine.calculate(twentyPaidInput)
+        assertTrue(twentyResult.isValid)
+        assertEquals(20, twentyResult.quantity)
+        assertEquals(4, twentyResult.freePacksReceived)
+        assertEquals(24, twentyResult.totalPacksReceived)
+        // 2000 total outlay / 24 = 83.3333333333
+        assertEquals(BigDecimal("83.33"), twentyResult.roundedEffectiveCostPerReceivedPack)
+    }
+
+    @Test
+    fun testSupplierOffer_IncompleteOfferCycle_OnlyCompleteCyclesEarnFreePacks() {
+        // Buy 10, Get 2 Free: but only paid 5 packs (incomplete cycle)
+        val incompleteInput = CalculationInput(
+            ptr = BigDecimal("100.00"),
+            quantity = 5,
+            isSupplierOfferEnabled = true,
+            offerBuyQuantity = 10,
+            offerFreeQuantity = 2
+        )
+        val result = ProfitCalculationEngine.calculate(incompleteInput)
+        assertTrue(result.isValid)
+        assertEquals(5, result.quantity)
+        assertEquals(0, result.freePacksReceived)
+        assertEquals(5, result.totalPacksReceived)
+
+        // Paid 15 packs: 1 complete cycle (2 free packs earned), 5 remainder packs do not earn bonus
+        val fifteenInput = incompleteInput.copy(quantity = 15)
+        val fifteenResult = ProfitCalculationEngine.calculate(fifteenInput)
+        assertTrue(fifteenResult.isValid)
+        assertEquals(15, fifteenResult.quantity)
+        assertEquals(2, fifteenResult.freePacksReceived)
+        assertEquals(17, fifteenResult.totalPacksReceived)
+    }
+
+    @Test
+    fun testSupplierOffer_ZeroFreeQuantityBehavesLikeNoFreeBenefit() {
+        val zeroFreeInput = CalculationInput(
+            quantity = 10,
+            isSupplierOfferEnabled = true,
+            offerBuyQuantity = 5,
+            offerFreeQuantity = 0
+        )
+        val result = ProfitCalculationEngine.calculate(zeroFreeInput)
+        assertTrue(result.isValid)
+        assertEquals(0, result.freePacksReceived)
+        assertEquals(10, result.totalPacksReceived)
+    }
+
+    @Test
+    fun testSupplierOffer_InvalidBuyQuantityAndNegativeFreeQuantityRejected() {
+        // Buy quantity <= 0 when offer enabled
+        val zeroBuyInput = CalculationInput(
+            isSupplierOfferEnabled = true,
+            offerBuyQuantity = 0,
+            offerFreeQuantity = 1
+        )
+        val zeroBuyResult = ProfitCalculationEngine.calculate(zeroBuyInput)
+        assertFalse(zeroBuyResult.isValid)
+        assertEquals("Buy quantity must be greater than zero when the offer is enabled.", zeroBuyResult.validationMessage)
+
+        // Free quantity < 0
+        val negFreeInput = CalculationInput(
+            isSupplierOfferEnabled = true,
+            offerBuyQuantity = 10,
+            offerFreeQuantity = -2
+        )
+        val negFreeResult = ProfitCalculationEngine.calculate(negFreeInput)
+        assertFalse(negFreeResult.isValid)
+        assertEquals("Free quantity cannot be negative.", negFreeResult.validationMessage)
+    }
+
+    // ==========================================
+    // MargiQ v1.2.0 Supplier Discount Tests
+    // ==========================================
+
+    @Test
+    fun testSupplierDiscount_ZeroDiscountMatchesBaseline() {
+        val zeroDiscInput = CalculationInput(
+            ptr = BigDecimal("100.00"),
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            supplierDiscountPercent = BigDecimal.ZERO
+        )
+        val result = ProfitCalculationEngine.calculate(zeroDiscInput)
+        assertTrue(result.isValid)
+        assertEquals(BigDecimal("100.00"), result.taxablePurchaseBase.setScale(2))
+        assertEquals(BigDecimal("5.00"), result.purchaseTaxAmount.setScale(2))
+        assertEquals(BigDecimal("105.00"), result.roundedPurchaseInvoice)
+    }
+
+    @Test
+    fun testSupplierDiscount_10PercentDiscountOnTaxExclusivePTR() {
+        // PTR: ₹100, Paid Qty: 10, Supplier discount: 10%, Purchase GST: 5%
+        // Gross paid value = ₹1,000, Discount = ₹100, Net taxable base = ₹900, GST = ₹45, Invoice = ₹945
+        val input = CalculationInput(
+            ptr = BigDecimal("100.00"),
+            quantity = 10,
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            supplierDiscountPercent = BigDecimal("10.00")
+        )
+
+        val result = ProfitCalculationEngine.calculate(input)
+        assertTrue(result.isValid)
+        assertEquals(BigDecimal("1000.00"), result.roundedGrossPaidPurchaseValue)
+        assertEquals(BigDecimal("100.00"), result.roundedSupplierDiscountAmount)
+        assertEquals(BigDecimal("90.00"), result.taxablePurchaseBase.setScale(2))
+        assertEquals(BigDecimal("4.50"), result.purchaseTaxAmount.setScale(2))
+        assertEquals(BigDecimal("94.50"), result.roundedPurchaseInvoice)
+        assertEquals(BigDecimal("945.00"), result.roundedTotalPurchaseInvoice)
+        assertEquals(BigDecimal("900.00"), result.roundedTotalEconomicCost)
+        assertEquals(BigDecimal("45.00"), result.roundedTotalInputCredit)
+    }
+
+    @Test
+    fun testSupplierDiscount_TaxInclusivePTR_CorrectTaxExtraction() {
+        // PTR: ₹105 (tax-inclusive 5% GST), 10% discount
+        // Discounted gross price = 105 * 0.90 = 94.50
+        // Net taxable base = 94.50 / 1.05 = 90.00
+        // Purchase GST = 94.50 - 90.00 = 4.50
+        // Supplier invoice total = 94.50
+        val input = CalculationInput(
+            ptr = BigDecimal("105.00"),
+            quantity = 1,
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            supplierDiscountPercent = BigDecimal("10.00")
+        )
+
+        val result = ProfitCalculationEngine.calculate(input)
+        assertTrue(result.isValid)
+        assertEquals(BigDecimal("90.00"), result.taxablePurchaseBase.setScale(2))
+        assertEquals(BigDecimal("4.50"), result.purchaseTaxAmount.setScale(2))
+        assertEquals(BigDecimal("94.50"), result.roundedPurchaseInvoice)
+        assertEquals(BigDecimal("90.00"), result.roundedEconomicCost)
+    }
+
+    @Test
+    fun testSupplierDiscount_100PercentDiscountHandledWithoutCrashOrDivisionByZero() {
+        val input = CalculationInput(
+            ptr = BigDecimal("100.00"),
+            purchaseTaxRate = BigDecimal("5.00"),
+            supplierDiscountPercent = BigDecimal("100.00"),
+            sellingPrice = BigDecimal("150.00")
+        )
+
+        val result = ProfitCalculationEngine.calculate(input)
+        assertTrue(result.isValid)
+        assertEquals(BigDecimal("0.00"), result.roundedEconomicCost)
+        assertEquals(BigDecimal("0.00"), result.roundedPurchaseInvoice)
+        assertEquals(BigDecimal("0.00"), result.roundedEffectiveCostPerReceivedPack)
+        assertNull(result.markup) // Division by zero economic cost produces null markup safely
+        assertNotNull(result.profitMargin)
+    }
+
+    @Test
+    fun testSupplierDiscount_NegativeAndOver100PercentRejected() {
+        val negInput = CalculationInput(supplierDiscountPercent = BigDecimal("-5.00"))
+        val negResult = ProfitCalculationEngine.calculate(negInput)
+        assertFalse(negResult.isValid)
+        assertEquals("Supplier discount must be between 0% and 100%.", negResult.validationMessage)
+
+        val overInput = CalculationInput(supplierDiscountPercent = BigDecimal("105.00"))
+        val overResult = ProfitCalculationEngine.calculate(overInput)
+        assertFalse(overResult.isValid)
+        assertEquals("Supplier discount must be between 0% and 100%.", overResult.validationMessage)
+    }
+
+    @Test
+    fun testCombinedSupplierDiscountAndBuyXGetYFree_Phase3Scenario() {
+        // PHASE 3 Master Example:
+        // PTR: ₹100 per paid pack, tax-exclusive
+        // Paid purchase quantity: 10 packs
+        // Supplier discount: 10%
+        // Purchase GST: 5%
+        // Buy X, Get Y Free: Buy 10, Get 2 Free
+        // Selling price: ₹150, tax-inclusive 5% sales GST, unitsPerPack = 10
+        val input = CalculationInput(
+            ptr = BigDecimal("100.00"),
+            quantity = 10,
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            isSupplierOfferEnabled = true,
+            offerBuyQuantity = 10,
+            offerFreeQuantity = 2,
+            supplierDiscountPercent = BigDecimal("10.00"),
+            sellingPrice = BigDecimal("150.00"),
+            sellingTaxRate = BigDecimal("5.00"),
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            unitsPerPack = 10
+        )
+
+        val result = ProfitCalculationEngine.calculate(input)
+        assertTrue(result.isValid)
+
+        // Gross paid-goods value = 10 × ₹100 = ₹1,000
+        assertEquals(BigDecimal("1000.00"), result.roundedGrossPaidPurchaseValue)
+        // Supplier discount = 10% × ₹1,000 = ₹100
+        assertEquals(BigDecimal("100.00"), result.roundedSupplierDiscountAmount)
+        // Net taxable purchase value = ₹900
+        assertEquals(BigDecimal("900.00"), result.totalEconomicPurchaseCost.setScale(2))
+        // Purchase GST = 5% × ₹900 = ₹45
+        assertEquals(BigDecimal("45.00"), result.totalOutputTax.setScale(2, java.math.RoundingMode.HALF_UP).let { result.roundedTotalInputCredit })
+        // Supplier invoice total = ₹945
+        assertEquals(BigDecimal("945.00"), result.roundedTotalPurchaseInvoice)
+        // Free packs earned = 2, Total packs received = 12
+        assertEquals(2, result.freePacksReceived)
+        assertEquals(12, result.totalPacksReceived)
+
+        // Effective purchase cost per received pack = 900 / 12 = ₹75.00
+        assertEquals(BigDecimal("75.00"), result.roundedEffectiveCostPerReceivedPack)
+        // Effective cost per unit = 75 / 10 = ₹7.50
+        assertEquals(BigDecimal("7.50"), result.roundedCostPerIndividualUnit)
+
+        // Net sales revenue per pack = 150 / 1.05 = 142.86
+        assertEquals(BigDecimal("142.86"), result.roundedNetSalesRevenue)
+        // Profit per received pack = 142.857... - 75.00 = 67.86
+        assertEquals(BigDecimal("67.86"), result.roundedProfitPerUnit)
+        // Profit per unit = 6.79
+        assertEquals(BigDecimal("6.79"), result.roundedProfitPerIndividualUnit)
+        // Total profit for batch (12 received packs) = 12 * 67.857... = ₹814.29
+        assertEquals(BigDecimal("814.29"), result.roundedTotalProfit)
+        // Customer collection (12 * 150) = ₹1,800.00
+        assertEquals(BigDecimal("1800.00"), result.roundedTotalCustomerCollection)
+    }
+
+    @Test
+    fun testOfferIntegerOverflowGuards() {
+        val overflowInput = CalculationInput(
+            quantity = Int.MAX_VALUE,
+            isSupplierOfferEnabled = true,
+            offerBuyQuantity = 1,
+            offerFreeQuantity = 1
+        )
+        val overflowResult = ProfitCalculationEngine.calculate(overflowInput)
+        assertFalse(overflowResult.isValid)
+        assertTrue(overflowResult.validationMessage?.contains("overflow") == true || overflowResult.validationMessage?.contains("limit") == true)
+    }
 }
+

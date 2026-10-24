@@ -17,8 +17,10 @@ lifecycleViewmodelNav3 = "2.10.0"
 room = "2.8.5"
 datastore = "1.1.1"
 materialIconsExtended = "1.7.8"
+androidxSplashScreen = "1.0.1"
 
 [libraries]
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "androidxSplashScreen" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
