@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:+UseParallelGC -Dfile.encoding=UTF-8"
 
     steps:
     - name: Checkout repository
@@ -26,13 +28,22 @@ jobs:
       run: chmod +x gradlew
 
     - name: Run unit tests
-      run: ./gradlew test --stacktrace
+      run: ./gradlew test --stacktrace -Dorg.gradle.jvmargs="-Xmx4096m -XX:+UseParallelGC -Dfile.encoding=UTF-8"
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace
+      run: ./gradlew assembleDebug --stacktrace -Dorg.gradle.jvmargs="-Xmx4096m -XX:+UseParallelGC -Dfile.encoding=UTF-8"
+
+    - name: Build Release APK
+      run: ./gradlew assembleRelease --stacktrace -Dorg.gradle.jvmargs="-Xmx4096m -XX:+UseParallelGC -Dfile.encoding=UTF-8"
 
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
         name: margiq-debug-apk
         path: app/build/outputs/apk/debug/app-debug.apk
+
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: margiq-release-apk
+        path: app/build/outputs/apk/release/app-release.apk
