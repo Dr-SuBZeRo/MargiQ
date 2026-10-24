@@ -1,10 +1,13 @@
 package com.example.profitmargincalculator.data.local
 
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.profitmargincalculator.domain.calculation.ProfitCalculationEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.lang.reflect.Proxy
+import java.math.BigDecimal
+import java.sql.DriverManager
 
 class AppDatabaseMigrationTest {
 
@@ -35,5 +38,140 @@ class AppDatabaseMigrationTest {
         assertTrue(executedStatements.any { it.contains("costPerIndividualUnit") && it.contains("DEFAULT '0.00'") })
         assertTrue(executedStatements.any { it.contains("revenuePerIndividualUnit") && it.contains("DEFAULT '0.00'") })
         assertTrue(executedStatements.any { it.contains("profitPerIndividualUnit") && it.contains("DEFAULT '0.00'") })
+    }
+
+    @Test
+    fun testMigration1To2OnRealSqlitePreservesExistingRecordsAndReopensCorrectly() {
+        val connection = DriverManager.getConnection("jdbc:sqlite::memory:")
+        val stmt = connection.createStatement()
+
+        // 1. Create real version-1 schema
+        stmt.execute("""
+            CREATE TABLE calculations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                productName TEXT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                ptr TEXT NOT NULL,
+                purchaseTaxRate TEXT NOT NULL,
+                purchasePriceMode TEXT NOT NULL,
+                purchaseTaxClassification TEXT NOT NULL,
+                isInputTaxCreditEnabled INTEGER NOT NULL,
+                sellingPrice TEXT NOT NULL,
+                sellingTaxRate TEXT NOT NULL,
+                sellingPriceMode TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                economicPurchaseCost TEXT NOT NULL,
+                netSalesRevenue TEXT NOT NULL,
+                profitPerUnit TEXT NOT NULL,
+                profitMargin TEXT,
+                markup TEXT,
+                costPercentage TEXT,
+                totalProfit TEXT NOT NULL,
+                totalPurchaseInvoiceTotal TEXT NOT NULL,
+                totalSellingCustomerTotal TEXT NOT NULL,
+                calculationBasis TEXT NOT NULL
+            );
+        """.trimIndent())
+
+        // 2. Insert real version-1 record
+        stmt.execute("""
+            INSERT INTO calculations (
+                id, productName, timestamp, ptr, purchaseTaxRate, purchasePriceMode,
+                purchaseTaxClassification, isInputTaxCreditEnabled, sellingPrice,
+                sellingTaxRate, sellingPriceMode, quantity, economicPurchaseCost,
+                netSalesRevenue, profitPerUnit, profitMargin, markup, costPercentage,
+                totalProfit, totalPurchaseInvoiceTotal, totalSellingCustomerTotal, calculationBasis
+            ) VALUES (
+                101, 'Paracetamol 650 Strip', 1700000000000, '48.00', '5.00', 'TAX_EXCLUSIVE',
+                'RECOVERABLE_GST', 1, '135.00', '5.00', 'TAX_INCLUSIVE', 5, '48.00',
+                '128.57', '80.57', '62.67', '167.86', '37.33', '402.86', '252.00', '675.00',
+                'Profit after excluding eligible GST credit'
+            );
+        """.trimIndent())
+
+        // 3. Execute Migration 1 -> 2 via SupportSQLiteDatabase adapter
+        val supportDb = Proxy.newProxyInstance(
+            SupportSQLiteDatabase::class.java.classLoader,
+            arrayOf(SupportSQLiteDatabase::class.java)
+        ) { _, method, args ->
+            if (method.name == "execSQL" && args != null && args.isNotEmpty()) {
+                val sql = args[0] as String
+                connection.createStatement().use { it.execute(sql) }
+            }
+            null
+        } as SupportSQLiteDatabase
+
+        AppDatabase.MIGRATION_1_2.migrate(supportDb)
+
+        // 4. Query migrated table and assert fields
+        val rs = stmt.executeQuery("SELECT * FROM calculations WHERE id = 101")
+        assertTrue("Record with id 101 must exist after migration", rs.next())
+
+        // Assert existing v1 fields preserved intact
+        assertEquals(101L, rs.getLong("id"))
+        assertEquals("Paracetamol 650 Strip", rs.getString("productName"))
+        assertEquals(1700000000000L, rs.getLong("timestamp"))
+        assertEquals("48.00", rs.getString("ptr"))
+        assertEquals(5, rs.getInt("quantity"))
+        assertEquals("135.00", rs.getString("sellingPrice"))
+        assertEquals("80.57", rs.getString("profitPerUnit"))
+        assertEquals("402.86", rs.getString("totalProfit"))
+
+        // Assert 7 new columns have default values
+        assertEquals("Pack", rs.getString("packName"))
+        assertEquals("Unit", rs.getString("unitName"))
+        assertEquals(1, rs.getInt("unitsPerPack"))
+        assertEquals(1, rs.getInt("sellingQuantity"))
+        assertEquals("0.00", rs.getString("costPerIndividualUnit"))
+        assertEquals("0.00", rs.getString("revenuePerIndividualUnit"))
+        assertEquals("0.00", rs.getString("profitPerIndividualUnit"))
+
+        // 5. Construct CalculationEntity from migrated database row and verify reopening
+        val entity = CalculationEntity(
+            id = rs.getLong("id"),
+            productName = rs.getString("productName"),
+            timestamp = rs.getLong("timestamp"),
+            ptr = rs.getString("ptr"),
+            purchaseTaxRate = rs.getString("purchaseTaxRate"),
+            purchasePriceMode = rs.getString("purchasePriceMode"),
+            purchaseTaxClassification = rs.getString("purchaseTaxClassification"),
+            isInputTaxCreditEnabled = rs.getInt("isInputTaxCreditEnabled") == 1,
+            sellingPrice = rs.getString("sellingPrice"),
+            sellingTaxRate = rs.getString("sellingTaxRate"),
+            sellingPriceMode = rs.getString("sellingPriceMode"),
+            quantity = rs.getInt("quantity"),
+            packName = rs.getString("packName"),
+            unitName = rs.getString("unitName"),
+            unitsPerPack = rs.getInt("unitsPerPack"),
+            sellingQuantity = rs.getInt("sellingQuantity"),
+            costPerIndividualUnit = rs.getString("costPerIndividualUnit"),
+            revenuePerIndividualUnit = rs.getString("revenuePerIndividualUnit"),
+            profitPerIndividualUnit = rs.getString("profitPerIndividualUnit"),
+            economicPurchaseCost = rs.getString("economicPurchaseCost"),
+            netSalesRevenue = rs.getString("netSalesRevenue"),
+            profitPerUnit = rs.getString("profitPerUnit"),
+            profitMargin = rs.getString("profitMargin"),
+            markup = rs.getString("markup"),
+            costPercentage = rs.getString("costPercentage"),
+            totalProfit = rs.getString("totalProfit"),
+            totalPurchaseInvoiceTotal = rs.getString("totalPurchaseInvoiceTotal"),
+            totalSellingCustomerTotal = rs.getString("totalSellingCustomerTotal"),
+            calculationBasis = rs.getString("calculationBasis")
+        )
+
+        val reopenedInput = entity.toCalculationInput()
+        assertEquals("Paracetamol 650 Strip", reopenedInput.productName)
+        assertEquals(BigDecimal("48.00"), reopenedInput.ptr)
+        assertEquals(5, reopenedInput.quantity)
+        assertEquals(1, reopenedInput.sellingQuantity)
+        assertEquals(1, reopenedInput.unitsPerPack)
+
+        val recalculated = ProfitCalculationEngine.calculate(reopenedInput)
+        assertTrue(recalculated.isValid)
+        assertEquals(BigDecimal("80.57"), recalculated.roundedProfitPerUnit)
+
+        rs.close()
+        stmt.close()
+        connection.close()
     }
 }

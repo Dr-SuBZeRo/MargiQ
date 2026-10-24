@@ -69,7 +69,7 @@ fun FinancialBreakdownCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = if (isExpanded) "Tap to collapse detailed accounting" else "Tap to view pack, unit, tax & revenue breakdown",
+                        text = if (isExpanded) "Tap to collapse detailed accounting" else "Tap to view tax & revenue accounting breakdown",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -95,24 +95,7 @@ fun FinancialBreakdownCard(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // SECTION 1: PACK & UNIT SUMMARY
-                    BreakdownSectionHeader(title = "PACK & UNIT SUMMARY")
-                    BreakdownLineItem(label = "Pack Type", value = result.packName)
-                    BreakdownLineItem(label = "Individual Unit", value = result.unitName)
-                    BreakdownLineItem(label = "Units Per Pack", value = "${result.unitsPerPack} ${result.unitName}s")
-                    BreakdownLineItem(label = "Purchase Quantity", value = "${result.quantity} ${result.packName}s")
-                    BreakdownLineItem(label = "Total Individual Units", value = "${result.totalIndividualUnits} ${result.unitName}s", isBold = true)
-                    BreakdownLineItem(label = "Cost Per Pack (Economic)", value = IndianCurrencyFormatter.formatCurrency(result.roundedEconomicCost))
-                    BreakdownLineItem(label = "Cost Per Individual Unit", value = IndianCurrencyFormatter.formatCurrency(result.roundedCostPerIndividualUnit), highlightColor = MaterialTheme.colorScheme.primary)
-                    BreakdownLineItem(label = "Profit Per Pack", value = IndianCurrencyFormatter.formatCurrency(result.roundedProfitPerUnit), isBold = true, highlightColor = if (result.isLoss) financeColors.loss else financeColors.profit)
-                    BreakdownLineItem(label = "Profit Per Individual Unit", value = IndianCurrencyFormatter.formatCurrency(result.roundedProfitPerIndividualUnit), isBold = true, highlightColor = if (result.isLoss) financeColors.loss else financeColors.profit)
-                    BreakdownLineItem(label = "Total Profit (${result.sellingQuantity} ${result.packName}s)", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalProfit), isBold = true, highlightColor = if (result.isLoss) financeColors.loss else financeColors.profit)
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // SECTION 2: PURCHASE SIDE
+                    // SECTION 1: PURCHASE SIDE
                     BreakdownSectionHeader(title = "PURCHASE ACCOUNTING (PER PACK)")
                     BreakdownLineItem(label = "Entered PTR", value = IndianCurrencyFormatter.formatCurrency(result.enteredPtr))
                     BreakdownLineItem(label = "Purchase Tax Rate", value = IndianCurrencyFormatter.formatPercentage(result.purchaseTaxRate))
@@ -139,7 +122,7 @@ fun FinancialBreakdownCard(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // SECTION 3: SELLING SIDE
+                    // SECTION 2: SELLING SIDE
                     BreakdownSectionHeader(title = "SELLING & REVENUE ACCOUNTING (PER PACK)")
                     BreakdownLineItem(label = "Entered Selling Price (MRP)", value = IndianCurrencyFormatter.formatCurrency(result.enteredSellingPrice))
                     BreakdownLineItem(label = "Selling Tax Rate", value = IndianCurrencyFormatter.formatPercentage(result.sellingTaxRate))
@@ -160,7 +143,7 @@ fun FinancialBreakdownCard(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // SECTION 4: PROFIT & MARGIN RATIOS
+                    // SECTION 3: PROFIT & MARGIN RATIOS
                     BreakdownSectionHeader(title = "MARGIN & MARKUP RATIOS")
                     BreakdownLineItem(
                         label = "Profit Per ${result.packName}",
@@ -172,12 +155,12 @@ fun FinancialBreakdownCard(
                     BreakdownLineItem(label = "Markup (Profit ÷ Economic Cost)", value = IndianCurrencyFormatter.formatPercentage(result.roundedMarkup))
                     BreakdownLineItem(label = "Cost % of Revenue (Cost ÷ Revenue)", value = IndianCurrencyFormatter.formatPercentage(result.roundedCostPercentage))
 
-                    if (result.quantity > 1 || result.sellingQuantity > 1) {
+                    if (result.quantity > 1 || result.sellingQuantity > 1 || result.sellingQuantity != result.quantity) {
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // SECTION 5: MULTI-PACK TOTALS
+                        // SECTION 4: MULTI-PACK TOTALS
                         BreakdownSectionHeader(title = "TOTALS (${result.quantity} ${result.packName}s purchased, ${result.sellingQuantity} sold)")
                         BreakdownLineItem(label = "Total Purchase Invoice Amount", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalPurchaseInvoice))
                         BreakdownLineItem(label = "Total Economic Purchase Cost", value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalEconomicCost))

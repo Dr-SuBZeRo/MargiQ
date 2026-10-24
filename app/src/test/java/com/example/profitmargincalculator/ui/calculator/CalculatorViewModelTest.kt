@@ -215,6 +215,53 @@ class CalculatorViewModelTest {
         assertEquals("", state.sellingPriceText)
     }
 
+    @Test
+    fun testZeroSellingQuantityDoesNotFallBackToPurchaseQuantity() {
+        val fakePrefs = FakePreferencesRepository()
+        val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
+
+        viewModel.onQuantityChanged("5")
+        viewModel.onSellingQuantityChanged("0")
+
+        val state = viewModel.uiState.value
+        assertTrue(state.calculationResult.isValid)
+        assertEquals(0, state.calculationResult.sellingQuantity)
+        assertEquals(0, state.calculationResult.totalIndividualUnitsSold)
+        assertEquals(BigDecimal("0.00"), state.calculationResult.roundedTotalProfit)
+        assertEquals(BigDecimal("0.00"), state.calculationResult.roundedTotalCustomerCollection)
+        assertEquals(5, state.calculationResult.remainingPacks)
+        assertEquals(50, state.calculationResult.remainingIndividualUnits)
+    }
+
+    @Test
+    fun testBlankSellingQuantityDoesNotFallBackToPurchaseQuantity() {
+        val fakePrefs = FakePreferencesRepository()
+        val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
+
+        viewModel.onQuantityChanged("5")
+        viewModel.onSellingQuantityChanged("")
+
+        val state = viewModel.uiState.value
+        assertTrue(state.calculationResult.isValid)
+        assertEquals(0, state.calculationResult.sellingQuantity)
+        assertEquals(0, state.calculationResult.totalIndividualUnitsSold)
+        assertEquals(BigDecimal("0.00"), state.calculationResult.roundedTotalProfit)
+        assertEquals(5, state.calculationResult.remainingPacks)
+        assertEquals(50, state.calculationResult.remainingIndividualUnits)
+    }
+
+    @Test
+    fun testNegativeSellingQuantityYieldsInvalidCalculation() {
+        val fakePrefs = FakePreferencesRepository()
+        val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
+
+        viewModel.onSellingQuantityChanged("-2")
+
+        val state = viewModel.uiState.value
+        org.junit.Assert.assertFalse(state.calculationResult.isValid)
+        assertEquals("Selling quantity cannot be negative.", state.calculationResult.validationMessage)
+    }
+
     private class FakeCalculationDao : CalculationDao {
         val items = mutableListOf<CalculationEntity>()
         private var idCounter = 1L

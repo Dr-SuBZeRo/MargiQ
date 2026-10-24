@@ -111,11 +111,20 @@ class ProfitCalculationEngineTest {
             val expectedCostPerUnit = BigDecimal("60.00").divide(BigDecimal(size), 2, java.math.RoundingMode.HALF_UP)
             assertEquals(expectedCostPerUnit, result.roundedCostPerIndividualUnit)
 
-            // Profit per individual unit * size = profit per pack (within penny)
-            val packProfit = result.roundedProfitPerUnit
-            val unitProfitTimesSize = result.roundedProfitPerIndividualUnit.multiply(BigDecimal(size))
-            val diff = packProfit.subtract(unitProfitTimesSize).abs()
-            assertTrue("Diff between pack profit and unit profit times size should be <= 1 rupee", diff < BigDecimal("1.00"))
+            // In full precision, unit profit times size exactly equals pack profit
+            val fullPrecisionPackProfit = result.profitPerIndividualUnit.multiply(BigDecimal(size))
+                .setScale(2, java.math.RoundingMode.HALF_UP)
+            assertEquals(result.roundedProfitPerUnit, fullPrecisionPackProfit)
+
+            // Explicit expected rounded profit per individual unit without ₹1 tolerance
+            val expectedUnitProfits = mapOf(
+                1 to BigDecimal("82.86"),
+                10 to BigDecimal("8.29"),
+                15 to BigDecimal("5.52"),
+                30 to BigDecimal("2.76"),
+                100 to BigDecimal("0.83")
+            )
+            assertEquals(expectedUnitProfits[size], result.roundedProfitPerIndividualUnit)
         }
     }
 
@@ -418,5 +427,165 @@ class ProfitCalculationEngineTest {
         assertEquals(BigDecimal("100.00"), result.roundedProfitPerUnit)
         assertNotNull(result.profitMargin)
         assertNull(result.markup)
+    }
+
+    @Test
+    fun testZeroPacksSold() {
+        val input = CalculationInput(
+            ptr = BigDecimal("50.00"),
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = BigDecimal("100.00"),
+            sellingTaxRate = BigDecimal("5.00"),
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            quantity = 10,
+            packName = "Box",
+            unitName = "Vial",
+            unitsPerPack = 10,
+            sellingQuantity = 0
+        )
+
+        val result = ProfitCalculationEngine.calculate(input)
+        assertTrue("Zero selling quantity must be valid", result.isValid)
+
+        // Per-pack unit economic metrics remain valid pricing references
+        assertEquals(BigDecimal("50.00"), result.roundedEconomicCost)
+        assertEquals(BigDecimal("95.24"), result.roundedNetSalesRevenue)
+        assertEquals(BigDecimal("45.24"), result.roundedProfitPerUnit)
+
+        // Multi-pack realized sales totals must be ZERO
+        assertEquals(0, result.sellingQuantity)
+        assertEquals(0, result.totalIndividualUnitsSold)
+        assertEquals(BigDecimal("0.00"), result.roundedTotalCustomerCollection)
+        assertEquals(BigDecimal("0.00"), result.roundedTotalNetSalesRevenue)
+        assertEquals(BigDecimal("0.00"), result.roundedTotalOutputTax)
+        assertEquals(BigDecimal("0.00"), result.roundedTotalProfit)
+
+        // Purchase totals reflect full batch purchased
+        assertEquals(10, result.quantity)
+        assertEquals(100, result.totalIndividualUnits)
+        assertEquals(BigDecimal("525.00"), result.roundedTotalPurchaseInvoice)
+        assertEquals(BigDecimal("500.00"), result.roundedTotalEconomicCost)
+        assertEquals(BigDecimal("25.00"), result.roundedTotalInputCredit)
+
+        // Remaining inventory equals total purchased inventory
+        assertEquals(10, result.remainingPacks)
+        assertEquals(100, result.remainingIndividualUnits)
+    }
+
+    @Test
+    fun testPartialSalesQuantityDifferentFromPurchaseQuantity() {
+        val input = CalculationInput(
+            ptr = BigDecimal("80.00"),
+            purchaseTaxRate = BigDecimal("12.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = BigDecimal("150.00"),
+            sellingTaxRate = BigDecimal("12.00"),
+            sellingPriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            quantity = 20,
+            packName = "Pack",
+            unitName = "Sachet",
+            unitsPerPack = 5,
+            sellingQuantity = 7
+        )
+
+        val result = ProfitCalculationEngine.calculate(input)
+        assertTrue(result.isValid)
+
+        assertEquals(20, result.quantity)
+        assertEquals(7, result.sellingQuantity)
+        assertEquals(100, result.totalIndividualUnits)
+        assertEquals(35, result.totalIndividualUnitsSold)
+        assertEquals(13, result.remainingPacks)
+        assertEquals(65, result.remainingIndividualUnits)
+
+        // Economics per pack
+        assertEquals(BigDecimal("80.00"), result.roundedEconomicCost)
+        assertEquals(BigDecimal("150.00"), result.roundedNetSalesRevenue)
+        assertEquals(BigDecimal("70.00"), result.roundedProfitPerUnit)
+
+        // Realized profit is 7 packs sold * 70.00 = 490.00
+        assertEquals(BigDecimal("490.00"), result.roundedTotalProfit)
+        // Customer collection is 7 packs * (150 + 18) = 7 * 168 = 1176.00
+        assertEquals(BigDecimal("1176.00"), result.roundedTotalCustomerCollection)
+        // Net revenue is 7 packs * 150 = 1050.00
+        assertEquals(BigDecimal("1050.00"), result.roundedTotalNetSalesRevenue)
+        // Output tax is 7 packs * 18 = 126.00
+        assertEquals(BigDecimal("126.00"), result.roundedTotalOutputTax)
+    }
+
+    @Test
+    fun testVeryLargeQuantityInputsAndOverflowGuards() {
+        // Safe large quantity within integer bounds
+        val largeSafeInput = CalculationInput(
+            quantity = 100_000,
+            unitsPerPack = 10_000,
+            sellingQuantity = 50_000
+        )
+        val safeResult = ProfitCalculationEngine.calculate(largeSafeInput)
+        assertTrue(safeResult.isValid)
+        assertEquals(1_000_000_000, safeResult.totalIndividualUnits)
+        assertEquals(500_000_000, safeResult.totalIndividualUnitsSold)
+        assertEquals(500_000_000, safeResult.remainingIndividualUnits)
+        assertEquals(50_000, safeResult.remainingPacks)
+
+        // Overflow: quantity * unitsPerPack > Int.MAX_VALUE
+        val overflowInput = CalculationInput(
+            quantity = Int.MAX_VALUE,
+            unitsPerPack = 2,
+            sellingQuantity = 1
+        )
+        val overflowResult = ProfitCalculationEngine.calculate(overflowInput)
+        assertFalse("Multiplication exceeding Int.MAX_VALUE must be rejected", overflowResult.isValid)
+        assertTrue(
+            overflowResult.validationMessage?.contains("overflow") == true ||
+            overflowResult.validationMessage?.contains("limit") == true
+        )
+
+        // Selling quantity overflow
+        val sellingOverflowInput = CalculationInput(
+            quantity = 10,
+            unitsPerPack = 10,
+            sellingQuantity = Int.MAX_VALUE
+        )
+        val sellingOverflowResult = ProfitCalculationEngine.calculate(sellingOverflowInput)
+        assertFalse(sellingOverflowResult.isValid)
+    }
+
+    @Test
+    fun testFullPrecisionCalculationsPreventPrematureRoundingErrors() {
+        val input = CalculationInput(
+            ptr = BigDecimal("33.33"),
+            purchaseTaxRate = BigDecimal("18.00"),
+            purchasePriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = BigDecimal("49.99"),
+            sellingTaxRate = BigDecimal("18.00"),
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            quantity = 100,
+            unitsPerPack = 3,
+            sellingQuantity = 100
+        )
+
+        val result = ProfitCalculationEngine.calculate(input)
+        assertTrue(result.isValid)
+
+        // Full precision prevents premature rounding discrepancy
+        assertEquals(BigDecimal("1411.86"), result.roundedTotalProfit)
+        assertEquals(BigDecimal("4236.44"), result.roundedTotalNetSalesRevenue)
+        assertEquals(BigDecimal("2824.58"), result.roundedTotalEconomicCost)
+    }
+
+    @Test
+    fun testNegativeSellingQuantityIsRejected() {
+        val input = CalculationInput(sellingQuantity = -1)
+        val result = ProfitCalculationEngine.calculate(input)
+        assertFalse(result.isValid)
+        assertEquals("Selling quantity cannot be negative.", result.validationMessage)
     }
 }

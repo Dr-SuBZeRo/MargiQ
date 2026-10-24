@@ -259,9 +259,21 @@ class CalculatorViewModel(
         val purchaseTaxRate = IndianCurrencyFormatter.parseInput(state.purchaseTaxRateText) ?: BigDecimal.ZERO
         val sellingPrice = IndianCurrencyFormatter.parseInput(state.sellingPriceText) ?: BigDecimal.ZERO
         val sellingTaxRate = IndianCurrencyFormatter.parseInput(state.sellingTaxRateText) ?: BigDecimal.ZERO
-        val quantity = state.quantityText.toIntOrNull() ?: 1
-        val unitsPerPack = state.unitsPerPackText.toIntOrNull() ?: 0
-        val sellingQuantity = state.sellingQuantityText.toIntOrNull() ?: quantity
+        val quantity = when {
+            state.quantityText.isBlank() -> 0
+            state.quantityText.toLongOrNull() != null && state.quantityText.toLong() > Int.MAX_VALUE -> Int.MAX_VALUE
+            else -> state.quantityText.toIntOrNull() ?: -1
+        }
+        val unitsPerPack = when {
+            state.unitsPerPackText.isBlank() -> 0
+            state.unitsPerPackText.toLongOrNull() != null && state.unitsPerPackText.toLong() > Int.MAX_VALUE -> Int.MAX_VALUE
+            else -> state.unitsPerPackText.toIntOrNull() ?: -1
+        }
+        val sellingQuantity = when {
+            state.sellingQuantityText.isBlank() -> 0
+            state.sellingQuantityText.toLongOrNull() != null && state.sellingQuantityText.toLong() > Int.MAX_VALUE -> Int.MAX_VALUE
+            else -> state.sellingQuantityText.toIntOrNull() ?: -1
+        }
 
         val input = CalculationInput(
             productName = state.productName,

@@ -13,6 +13,18 @@ import java.math.RoundingMode
  *
  * Uses BigDecimal with 10 decimal digits of precision for intermediate
  * arithmetic to prevent premature rounding errors.
+ *
+ * ### Pack-Based Sales Model & Scope:
+ * - This engine models inventory and sales transactions at the whole-pack level
+ *   ([CalculationInput.quantity] packs purchased, [CalculationInput.sellingQuantity] packs sold).
+ * - Individual-unit economics (cost, selling price, net revenue, and profit per tablet/piece)
+ *   are derived by dividing whole-pack figures by [CalculationInput.unitsPerPack].
+ * - Partial-pack loose-unit sales (e.g. selling 3 individual loose tablets from an opened
+ *   blister pack) are outside the current maintenance release scope and are not modeled as fractional packs.
+ * - For zero packs sold ([CalculationInput.sellingQuantity] == 0):
+ *   Sold units = 0, customer collection = ₹0, net sales revenue = ₹0, realized profit = ₹0,
+ *   and remaining inventory equals total purchased units.
+ * - All integer arithmetic scaled operations are guarded against integer overflow.
  */
 object ProfitCalculationEngine {
 
@@ -166,11 +178,38 @@ object ProfitCalculationEngine {
         val netRevenuePerIndividualUnit = netSalesRevenue.divide(unitsPerPackBd, CALC_SCALE, RoundingMode.HALF_UP)
         val profitPerIndividualUnit = profitPerPack.divide(unitsPerPackBd, CALC_SCALE, RoundingMode.HALF_UP)
 
-        // 6. Quantity Scaled Totals
+        // 6. Quantity Scaled Totals & Inventory Tracking
         val purchasePacks = input.quantity
-        val sellingPacks = if (input.sellingQuantity <= 0) purchasePacks else input.sellingQuantity
-        val totalIndividualUnits = purchasePacks * input.unitsPerPack
-        val totalIndividualUnitsSold = sellingPacks * input.unitsPerPack
+        val sellingPacks = input.sellingQuantity
+
+        // Protect arithmetic operations against integer overflow
+        val totalIndividualUnitsLong: Long
+        val totalIndividualUnitsSoldLong: Long
+        try {
+            totalIndividualUnitsLong = Math.multiplyExact(purchasePacks.toLong(), input.unitsPerPack.toLong())
+            totalIndividualUnitsSoldLong = Math.multiplyExact(sellingPacks.toLong(), input.unitsPerPack.toLong())
+        } catch (e: ArithmeticException) {
+            return CalculationResult.invalid("Quantity or pack size is too large (integer overflow).")
+        }
+
+        if (totalIndividualUnitsLong > Int.MAX_VALUE || totalIndividualUnitsSoldLong > Int.MAX_VALUE) {
+            return CalculationResult.invalid("Total calculated individual units exceed maximum supported limit.")
+        }
+
+        val totalIndividualUnits = totalIndividualUnitsLong.toInt()
+        val totalIndividualUnitsSold = totalIndividualUnitsSoldLong.toInt()
+
+        val remainingPacksLong = purchasePacks.toLong() - sellingPacks.toLong()
+        val remainingUnitsLong = totalIndividualUnitsLong - totalIndividualUnitsSoldLong
+
+        if (remainingPacksLong > Int.MAX_VALUE || remainingPacksLong < Int.MIN_VALUE ||
+            remainingUnitsLong > Int.MAX_VALUE || remainingUnitsLong < Int.MIN_VALUE
+        ) {
+            return CalculationResult.invalid("Remaining inventory calculation exceeds integer limits.")
+        }
+
+        val remainingPacks = remainingPacksLong.toInt()
+        val remainingIndividualUnits = remainingUnitsLong.toInt()
 
         val purchaseQtyBd = BigDecimal(purchasePacks)
         val sellingQtyBd = BigDecimal(sellingPacks)
@@ -179,10 +218,11 @@ object ProfitCalculationEngine {
         val totalEconomicPurchaseCost = economicPurchaseCost.multiply(purchaseQtyBd)
         val totalEligibleInputTaxCredit = eligibleInputTaxCredit.multiply(purchaseQtyBd)
 
-        val totalSellingCustomerTotal = customerSellingPrice.multiply(sellingQtyBd)
-        val totalNetSalesRevenue = netSalesRevenue.multiply(sellingQtyBd)
-        val totalOutputTax = sellingTaxAmount.multiply(sellingQtyBd)
-        val totalProfit = profitPerPack.multiply(sellingQtyBd)
+        // When sellingPacks == 0: customer collection = ₹0, net sales revenue = ₹0, output tax = ₹0, realized profit = ₹0
+        val totalSellingCustomerTotal = if (sellingPacks == 0) BigDecimal.ZERO else customerSellingPrice.multiply(sellingQtyBd)
+        val totalNetSalesRevenue = if (sellingPacks == 0) BigDecimal.ZERO else netSalesRevenue.multiply(sellingQtyBd)
+        val totalOutputTax = if (sellingPacks == 0) BigDecimal.ZERO else sellingTaxAmount.multiply(sellingQtyBd)
+        val totalProfit = if (sellingPacks == 0) BigDecimal.ZERO else profitPerPack.multiply(sellingQtyBd)
 
         // 7. Simple Cash Price Comparison (Customer Selling Price - Purchase Invoice Amount)
         val simpleCashProfitPerUnit = customerSellingPrice.subtract(purchaseInvoiceTotal)
@@ -218,6 +258,8 @@ object ProfitCalculationEngine {
             totalIndividualUnits = totalIndividualUnits,
             sellingQuantity = sellingPacks,
             totalIndividualUnitsSold = totalIndividualUnitsSold,
+            remainingIndividualUnits = remainingIndividualUnits,
+            remainingPacks = remainingPacks,
 
             costPerIndividualUnit = costPerIndividualUnit,
             purchaseInvoicePerIndividualUnit = purchaseInvoicePerIndividualUnit,

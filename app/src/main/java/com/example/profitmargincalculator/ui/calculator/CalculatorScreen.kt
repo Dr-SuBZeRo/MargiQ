@@ -393,15 +393,23 @@ fun CalculatorScreen(
                     )
 
                     // Live Units Calculation Callout
-                    val pQty = uiState.quantityText.toIntOrNull() ?: 1
-                    val uPack = uiState.unitsPerPackText.toIntOrNull() ?: 1
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        val calloutText = if (uiState.calculationResult.isValid) {
+                            val baseInfo = "${uiState.calculationResult.quantity} ${uiState.packName}s × ${uiState.calculationResult.unitsPerPack} ${uiState.unitName}s = ${uiState.calculationResult.totalIndividualUnits} total ${uiState.unitName.lowercase()}s purchased"
+                            if (uiState.calculationResult.sellingQuantity != uiState.calculationResult.quantity) {
+                                "💡 $baseInfo (${uiState.calculationResult.totalIndividualUnitsSold} sold, ${uiState.calculationResult.remainingIndividualUnits} remaining)"
+                            } else {
+                                "💡 $baseInfo"
+                            }
+                        } else {
+                            "💡 Pack configuration: ${uiState.packName} of ${uiState.unitName}s"
+                        }
                         Text(
-                            text = "💡 $pQty ${uiState.packName}s × $uPack ${uiState.unitName}s = ${pQty * uPack} total ${uiState.unitName.lowercase()}s purchased",
+                            text = calloutText,
                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(10.dp)

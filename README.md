@@ -1,6 +1,6 @@
 # MargiQ (Native Android)
 > **Know your cost. Own your margin.**  
-> *Created by SuBZeRo* • **Version 1.1.0**
+> *Created by SuBZeRo* • **Version 1.1.1**
 
 A complete, production-grade native Android application for retail, wholesale, pharmacy, and product-pricing calculations in India. Built with **Kotlin**, **Jetpack Compose**, **Material 3**, **Room Database** (with automatic backward-compatible schema migrations), and **DataStore Preferences**, following modern Android architecture and clean MVVM principles.
 
@@ -8,16 +8,21 @@ A complete, production-grade native Android application for retail, wholesale, p
 
 ## 📱 Features
 
-### 1. Pack & Individual Unit Profitability (New in v1.1.0)
+### 1. Pack & Individual Unit Profitability
 - **Pack Name & Selling Unit**: Support for any packaging type (e.g., *Strip*, *Box*, *Bottle*, *Pack*, *Vial*, *Carton*, or custom entry).
 - **Individual Unit Name**: Precise unit specification (e.g., *Tablet*, *Capsule*, *Piece*, *ml*, *g*, *Sachet*, or custom entry).
 - **Units per Pack**: Manually editable positive integer (e.g., 10, 15, 30, 100).
-- **Purchase & Selling Quantities**: Decoupled purchase quantity (packs purchased) and selling quantity (packs sold) for tracking partial sales and total inventory.
+- **Purchase & Selling Quantities**: Decoupled purchase quantity (packs purchased) and selling quantity (packs sold) for tracking inventory and realized profits.
+- **Zero Packs Sold Support**: Setting selling quantity to 0 represents 0 packs sold (₹0 customer collection, ₹0 net revenue, ₹0 realized profit, with 100% of purchased inventory remaining).
 - **Dual Profit Breakdown**:
   - **Per Pack**: Economic purchase cost, net sales revenue, profit per pack, margin (%), and markup (%).
-  - **Per Individual Unit**: Cost per unit ($C / U$), customer price per unit, net revenue per unit ($R / U$), and profit per unit ($F / U$).
-  - **Totals**: Total individual units purchased ($P \times U$), total units sold, total invoice, total economic cost, and total profit ($S \times F$).
+  - **Per Individual Unit**: Cost per unit, customer price per unit, net revenue per unit, and profit per unit.
+  - **Totals**: Total individual units purchased, total units sold, remaining inventory, total invoice, total customer collection, and realized profit.
 - **Live Recalculation**: Adjusting units per pack or quantities updates all per-unit and total figures instantaneously without losing state.
+
+> [!NOTE]
+> **Pack-Based Sales Scope & Inventory Limitation**:  
+> MargiQ calculates per-unit economics (cost, selling price, net revenue, and profit per tablet/piece) by dividing whole-pack economics by `unitsPerPack`. Sales transactions and inventory tracking are modeled at the whole-pack level (Packs Purchased vs. Packs Sold). Partial-pack loose-unit sales (e.g. selling 3 individual loose tablets from an opened blister pack) are outside the current release scope and are not modeled as fractional packs. All multi-pack totals scale with whole packs sold.
 
 ### 2. Comprehensive Tax & Pricing Engine
 - **Live Financial Calculation**: Automatically calculates profit, margins, taxes, and economic costs as you type — no manual calculate button needed.
@@ -35,12 +40,13 @@ A complete, production-grade native Android application for retail, wholesale, p
 
 ### 3. Financial Dashboard & Insights
 - **Hero Card**: Displays Profit Per Pack, Per-Unit Profit Callout, Profit Margin (%), Markup (%), Total Profit, and Pack Details with color coding (Green for profit, Red for loss, Neutral for break-even).
-- **Pack & Unit Summary Section**: Dedicated card showing Pack Type, Units per Pack, Purchase Quantity, Total Units, Cost per Pack, Cost per Unit, Profit per Pack, Profit per Unit, and Total Profit.
-- **Line-Item Financial Breakdown**: Detailed purchase base, taxes, customer price, net sales revenue, and cost percentages.
+- **Line-Item Financial Breakdown**: Detailed purchase base, taxes, customer price, net sales revenue, margin/markup ratios, and multi-pack totals.
 - **Cash Flow vs. Business Profit Comparison**: Explicitly distinguishes between raw cash difference (`MRP - Invoice = Cash Difference`) and GST-exclusive business profit so users are never misled.
 
-### 4. Calculation History (Room Database v2)
-- **Non-Destructive Room Migration (v1 → v2)**: Preserves all historical calculations while adding pack and unit fields with safe defaults (`Pack`, `Unit`, `1`).
+### 4. Calculation History & Room Database Safety (v2)
+- **Non-Destructive Room Migration (v1 → v2)**: Preserves all historical calculations while adding pack and unit fields with safe defaults (`Pack`, `Unit`, `1`, `1`, `'0.00'`, `'0.00'`, `'0.00'`).
+- **Destructive Fallback Disabled**: Strict migration enforcement ensures existing user databases are never wiped on version upgrades.
+- **Schema Export Enabled**: Versioned schema JSON files committed to `app/schemas/` for complete auditability.
 - **Search & Sort**: Search calculations by product name; sort by newest or oldest.
 - **Reopen & Duplicate**: One-tap reopen into the main calculator with live recalculation; duplicate calculations for rapid price testing.
 - **Manage History**: Delete individual records or clear all history with confirmation dialogs.
@@ -50,7 +56,7 @@ A complete, production-grade native Android application for retail, wholesale, p
   ```
   MargiQ
   Created by SuBZeRo
-  Version 1.1.0
+  Version 1.1.1
   ```
   Reads the version dynamically from `BuildConfig.VERSION_NAME`.
 - **Theme Selection**: **Follow System**, **Light Theme**, **Dark Theme**.
@@ -65,9 +71,9 @@ A complete, production-grade native Android application for retail, wholesale, p
 
 ### Mathematical Rules
 Let:
-- $P$ = number of packs purchased
-- $S$ = number of packs sold
-- $U$ = individual units per pack
+- $P$ = number of whole packs purchased ($P \ge 1$)
+- $S$ = number of whole packs sold ($S \ge 0$)
+- $U$ = individual units per pack ($U \ge 1$)
 - $C$ = economic purchase cost per pack
 - $R$ = net sales revenue per pack
 - $F$ = profit per pack ($R - C$)
@@ -75,11 +81,13 @@ Let:
 Then:
 $$\text{Total Individual Units Purchased} = P \times U$$
 $$\text{Total Individual Units Sold} = S \times U$$
+$$\text{Remaining Individual Units} = (P \times U) - (S \times U)$$
+$$\text{Remaining Whole Packs} = P - S$$
 $$\text{Cost Per Individual Unit} = \frac{C}{U}$$
 $$\text{Net Revenue Per Individual Unit} = \frac{R}{U}$$
 $$\text{Profit Per Individual Unit} = \frac{F}{U}$$
 $$\text{Total Purchase Cost} = P \times C$$
-$$\text{Total Profit for Packs Sold} = S \times F$$
+$$\text{Total Realized Profit} = \begin{cases} S \times F & \text{if } S > 0 \\ 0 & \text{if } S = 0 \end{cases}$$
 $$\text{Profit Margin (\%)} = \frac{F}{R} \times 100 \quad (R > 0)$$
 $$\text{Markup (\%)} = \frac{F}{C} \times 100 \quad (C > 0)$$
 
@@ -131,43 +139,64 @@ $$\text{Markup (\%)} = \frac{F}{C} \times 100 \quad (C > 0)$$
 - **Precision**: Deterministic `BigDecimal` monetary arithmetic with `RoundingMode.HALF_UP`
 - **Navigation**: AndroidX Navigation 3 Compose with type-safe NavKeys
 - **Build System**: Gradle 9.1 with Kotlin DSL and Version Catalogs (`libs.versions.toml`)
+- **CI / Automation**: GitHub Actions running automated unit tests and debug APK compilation
 
 ---
 
-## 🚀 How to Open in Android Studio
+## 💻 JDK Requirements & Windows Build Commands
 
-1. Open **Android Studio** (Hedgehog, Iguana, Jellyfish, Koala, Ladybug, Meerkat or newer).
-2. Select **Open** and navigate to: `G:\SM` (or `G:\MargiQ`).
-3. Allow Gradle Sync to finish.
-4. Select the **app** configuration and click **Run** (or `Shift + F10`) to launch on your device or emulator.
+### Prerequisites
+- **JDK Requirement**: **JDK 17** (recommended) or **JDK 21** (e.g. Eclipse Adoptium Temurin or Amazon Corretto).
+- **Gradle Wrapper**: The project includes `gradlew.bat` configured for Gradle 9.1; no global Gradle installation is required.
 
----
+### Copy-and-Paste Commands (PowerShell)
+```powershell
+# 1. Set JAVA_HOME (adjust to your local JDK path if needed)
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
 
-## 🔨 How to Build Manually from Command Line
-
-```bash
-# Ensure JAVA_HOME points to JDK 17+
-set JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot
-set PATH=%JAVA_HOME%\bin;%PATH%
-
-# Run Unit Tests (includes Section 5 regression suite)
+# 2. Run All Automated Unit & Migration Tests
 .\gradlew.bat test
 
-# Build Debug APK
+# 3. Assemble Local Debug APK
 .\gradlew.bat assembleDebug
 ```
 
+### Copy-and-Paste Commands (Windows Command Prompt)
+```cmd
+:: 1. Set JAVA_HOME
+set "JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
+set "PATH=%JAVA_HOME%\bin;%PATH%"
+
+:: 2. Run All Automated Unit & Migration Tests
+gradlew.bat test
+
+:: 3. Assemble Local Debug APK
+gradlew.bat assembleDebug
+```
+
 The compiled APK will be generated at:
-`G:\SM\app\build\outputs\apk\debug\app-debug.apk`
+`app\build\outputs\apk\debug\app-debug.apk`
+
+---
+
+## 🔒 Release Signing vs. Local Debug Builds
+
+- **Debug Builds (`assembleDebug`)**:
+  - Automatically signed with Android's default local debug keystore.
+  - Ideal for local development, emulator testing, and side-loading via ADB or APK file transfer.
+- **Production Releases (`assembleRelease`)**:
+  - Production builds intentionally do **not** use the debug keystore.
+  - Release signing keys must be supplied securely via environment variables or CI secrets (e.g. `KEYSTORE_FILE`, `KEY_ALIAS`, `KEY_PASSWORD`, `STORE_PASSWORD`) to prevent checking private credentials into Git.
 
 ---
 
 ## 📲 How to Install & Upgrade
 
-Because the application ID (`com.example.profitmargincalculator`) and debug signing configuration are preserved, this update cleanly upgrades existing installations without data loss.
+Because the application ID (`com.example.profitmargincalculator`) and installation identity are preserved, this update cleanly upgrades existing installations without data loss.
 
 ### Option A: Install via ADB
-```bash
+```powershell
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
@@ -178,10 +207,33 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ---
 
-## 🧪 Automated Test Verification
+## 🧪 Automated Test Suite
 
-All 26 automated unit tests pass with zero failures:
-- `ProfitCalculationEngineTest`: 14 tests (Section 5 regression, pack sizes 1/10/15/30/100, live updates, decoupled quantities, non-recoverable tax, ITC disabled, tax-inclusive/exclusive, zero tax, break-even, loss, zero/invalid pack sizes, division-by-zero prevention).
-- `CalculatorViewModelTest`: 7 tests (default state, live pack updates, live input updates, Room repository saving, history restoration, example reset, form clearing).
-- `AppDatabaseMigrationTest`: 1 test (verifies Room `MIGRATION_1_2` SQLite alter table statements).
-- `IndianCurrencyFormatterTest`: 4 tests (currency, percentage, negative formatting, input parsing).
+All automated tests run via `.\gradlew.bat test`:
+- **`ProfitCalculationEngineTest`**:
+  - Mandatory Section 5 regression scenario (PTR ₹48, MRP ₹135, 5% GST, ITC enabled).
+  - Explicit pack size economics (1, 10, 15, 30, 100 units per pack) with exact rounded unit assertions.
+  - Zero packs sold behavior (zero customer collection, zero revenue, zero profit, full inventory preserved).
+  - Partial sales quantity with decoupled purchase and selling quantities.
+  - Arithmetic overflow guards on large quantities and pack sizes.
+  - Full-precision intermediate arithmetic preventing display rounding errors.
+  - Tax-inclusive and tax-exclusive pricing.
+  - Recoverable GST with ITC enabled vs. disabled.
+  - Non-recoverable tax classification.
+  - Zero tax rates, break-even, loss, and zero-revenue edge cases.
+  - Negative selling quantity, zero pack sizes, and boundary rejection.
+- **`CalculatorViewModelTest`**:
+  - Initial UI state matching default reference values.
+  - Live recalculation on changing pack and unit names or pack sizes.
+  - Live recalculation on changing pricing inputs.
+  - Room repository persistence and loading.
+  - Example scenario restoration and form clearing.
+  - Handling of zero, blank, and invalid negative selling quantities without fallback to purchase quantity.
+- **`AppDatabaseMigrationTest`**:
+  - Verifies Room `MIGRATION_1_2` executes all 7 SQLite `ALTER TABLE` statements.
+  - Real SQLite in-memory database test: migrates a real version-1 database with existing user records, verifies default values are added, asserts no data loss, and verifies records reopen cleanly into the calculator engine.
+- **`IndianCurrencyFormatterTest`**:
+  - INR currency formatting (Lakhs and Crores grouping).
+  - Percentage formatting.
+  - Negative value formatting.
+  - User input parsing.
