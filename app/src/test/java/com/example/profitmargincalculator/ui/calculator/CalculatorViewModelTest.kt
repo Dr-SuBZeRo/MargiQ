@@ -2,7 +2,6 @@ package com.example.profitmargincalculator.ui.calculator
 
 import com.example.profitmargincalculator.data.local.CalculationDao
 import com.example.profitmargincalculator.data.local.CalculationEntity
-import com.example.profitmargincalculator.data.preferences.PreferencesRepository
 import com.example.profitmargincalculator.data.preferences.ThemePreference
 import com.example.profitmargincalculator.data.preferences.UserPreferences
 import com.example.profitmargincalculator.data.repository.CalculationRepository
@@ -11,7 +10,6 @@ import com.example.profitmargincalculator.domain.model.TaxPriceMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -60,10 +58,40 @@ class CalculatorViewModelTest {
         assertEquals(PurchaseTaxClassification.RECOVERABLE_GST, state.purchaseTaxClassification)
         assertTrue(state.isInputTaxCreditEnabled)
 
+        // Pack & Unit Defaults
+        assertEquals("Strip", state.packName)
+        assertEquals("Tablet", state.unitName)
+        assertEquals("10", state.unitsPerPackText)
+        assertEquals("5", state.quantityText)
+        assertEquals(50, state.calculationResult.totalIndividualUnits)
+
         // Check reference calculation results
         assertEquals(BigDecimal("80.57"), state.calculationResult.roundedProfitPerUnit)
+        assertEquals(BigDecimal("8.06"), state.calculationResult.roundedProfitPerIndividualUnit)
+        assertEquals(BigDecimal("4.80"), state.calculationResult.roundedCostPerIndividualUnit)
         assertEquals(BigDecimal("62.67"), state.calculationResult.roundedProfitMargin)
         assertEquals(BigDecimal("167.86"), state.calculationResult.roundedMarkup)
+        assertEquals(BigDecimal("402.86"), state.calculationResult.roundedTotalProfit)
+    }
+
+    @Test
+    fun testChangingPackAndUnitUpdatesLiveCalculation() {
+        val fakePrefs = FakePreferencesRepository()
+        val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
+
+        // Change pack name to Box, unit to Piece, unitsPerPack to 20, quantity to 3
+        viewModel.onPackNameChanged("Box")
+        viewModel.onUnitNameChanged("Piece")
+        viewModel.onUnitsPerPackChanged("20")
+        viewModel.onQuantityChanged("3")
+        viewModel.onSellingQuantityChanged("3")
+
+        val state = viewModel.uiState.value
+        assertEquals("Box", state.packName)
+        assertEquals("Piece", state.unitName)
+        assertEquals("20", state.unitsPerPackText)
+        assertEquals(60, state.calculationResult.totalIndividualUnits)
+        assertEquals(60, state.calculationResult.totalIndividualUnitsSold)
     }
 
     @Test
@@ -75,9 +103,12 @@ class CalculatorViewModelTest {
         viewModel.onPurchaseTaxRateChanged("0.00")
         viewModel.onSellingPriceChanged("150.00")
         viewModel.onSellingTaxRateChanged("0.00")
+        viewModel.onUnitsPerPackChanged("10")
 
         val state = viewModel.uiState.value
         assertEquals(BigDecimal("50.00"), state.calculationResult.roundedProfitPerUnit)
+        assertEquals(BigDecimal("5.00"), state.calculationResult.roundedProfitPerIndividualUnit)
+        assertEquals(BigDecimal("10.00"), state.calculationResult.roundedCostPerIndividualUnit)
         assertEquals(BigDecimal("33.33"), state.calculationResult.roundedProfitMargin)
         assertEquals(BigDecimal("50.00"), state.calculationResult.roundedMarkup)
     }
@@ -87,7 +118,12 @@ class CalculatorViewModelTest {
         val fakePrefs = FakePreferencesRepository()
         val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
 
-        viewModel.onProductNameChanged("Test Pharma Product")
+        viewModel.onProductNameChanged("Paracetamol 650 Strip")
+        viewModel.onPackNameChanged("Strip")
+        viewModel.onUnitNameChanged("Tablet")
+        viewModel.onUnitsPerPackChanged("15")
+        viewModel.onQuantityChanged("4")
+
         viewModel.saveCalculation()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -95,7 +131,60 @@ class CalculatorViewModelTest {
         assertNotNull(state.currentSavedId)
         assertEquals("Calculation saved to history", state.userMessage)
         assertEquals(1, fakeDao.items.size)
-        assertEquals("Test Pharma Product", fakeDao.items[0].productName)
+        val saved = fakeDao.items[0]
+        assertEquals("Paracetamol 650 Strip", saved.productName)
+        assertEquals("Strip", saved.packName)
+        assertEquals("Tablet", saved.unitName)
+        assertEquals(15, saved.unitsPerPack)
+        assertEquals(4, saved.quantity)
+    }
+
+    @Test
+    fun testLoadingCalculationRestoresPackInformation() {
+        val fakePrefs = FakePreferencesRepository()
+        val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
+
+        val entity = CalculationEntity(
+            id = 42,
+            productName = "Amoxicillin 500mg",
+            ptr = "90.00",
+            purchaseTaxRate = "12.00",
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE.name,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST.name,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = "180.00",
+            sellingTaxRate = "12.00",
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE.name,
+            quantity = 6,
+            packName = "Strip",
+            unitName = "Capsule",
+            unitsPerPack = 10,
+            sellingQuantity = 6,
+            costPerIndividualUnit = "9.00",
+            revenuePerIndividualUnit = "16.07",
+            profitPerIndividualUnit = "7.07",
+            economicPurchaseCost = "90.00",
+            netSalesRevenue = "160.71",
+            profitPerUnit = "70.71",
+            profitMargin = "44.00",
+            markup = "78.57",
+            costPercentage = "56.00",
+            totalProfit = "424.26",
+            totalPurchaseInvoiceTotal = "604.80",
+            totalSellingCustomerTotal = "1080.00",
+            calculationBasis = "Profit after excluding eligible GST credit"
+        )
+
+        viewModel.loadCalculation(entity)
+
+        val state = viewModel.uiState.value
+        assertEquals("Amoxicillin 500mg", state.productName)
+        assertEquals("Strip", state.packName)
+        assertEquals("Capsule", state.unitName)
+        assertEquals("10", state.unitsPerPackText)
+        assertEquals("6", state.quantityText)
+        assertEquals(60, state.calculationResult.totalIndividualUnits)
+        assertEquals(42L, state.currentSavedId)
     }
 
     @Test
@@ -109,6 +198,9 @@ class CalculatorViewModelTest {
         val state = viewModel.uiState.value
         assertEquals("48.00", state.ptrText)
         assertEquals("135.00", state.sellingPriceText)
+        assertEquals("Strip", state.packName)
+        assertEquals("Tablet", state.unitName)
+        assertEquals("10", state.unitsPerPackText)
         assertEquals(BigDecimal("80.57"), state.calculationResult.roundedProfitPerUnit)
     }
 

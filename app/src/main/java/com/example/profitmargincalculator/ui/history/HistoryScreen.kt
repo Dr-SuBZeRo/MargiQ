@@ -307,12 +307,12 @@ fun HistoryItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text(text = "PTR", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "PTR (${entity.packName})", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(text = "₹${entity.ptr}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
                 }
 
                 Column {
-                    Text(text = "MRP", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "MRP (${entity.packName})", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(text = "₹${entity.sellingPrice}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
                 }
 
@@ -328,11 +328,33 @@ fun HistoryItemCard(
                 }
 
                 Column {
-                    Text(text = "Total Profit (${entity.quantity})", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "Total (${entity.sellingQuantity} ${entity.packName}s)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "₹${entity.totalProfit}",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold,
+                            color = if (isProfit) financeColors.profit else financeColors.loss
+                        )
+                    )
+                }
+            }
+
+            if (entity.unitsPerPack > 1) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Pack: 1 ${entity.packName} = ${entity.unitsPerPack} ${entity.unitName}s (${entity.quantity * entity.unitsPerPack} total)",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "₹${entity.profitPerIndividualUnit} profit/${entity.unitName}",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
                             color = if (isProfit) financeColors.profit else financeColors.loss
                         )
                     )

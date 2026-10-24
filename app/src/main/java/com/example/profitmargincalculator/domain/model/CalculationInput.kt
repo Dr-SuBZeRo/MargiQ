@@ -12,10 +12,29 @@ data class CalculationInput(
     val sellingPrice: BigDecimal = BigDecimal("135.00"),
     val sellingTaxRate: BigDecimal = BigDecimal("5.00"),
     val sellingPriceMode: TaxPriceMode = TaxPriceMode.TAX_INCLUSIVE,
-    val quantity: Int = 1
+    val quantity: Int = 5,
+    val packName: String = "Strip",
+    val unitName: String = "Tablet",
+    val unitsPerPack: Int = 10,
+    val sellingQuantity: Int = 5
 ) {
     companion object {
-        fun defaultExample(): CalculationInput = CalculationInput()
+        fun defaultExample(): CalculationInput = CalculationInput(
+            productName = "Sample Product",
+            ptr = BigDecimal("48.00"),
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = BigDecimal("135.00"),
+            sellingTaxRate = BigDecimal("5.00"),
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            quantity = 5,
+            packName = "Strip",
+            unitName = "Tablet",
+            unitsPerPack = 10,
+            sellingQuantity = 5
+        )
 
         fun empty(): CalculationInput = CalculationInput(
             productName = "",
@@ -27,7 +46,11 @@ data class CalculationInput(
             sellingPrice = BigDecimal.ZERO,
             sellingTaxRate = BigDecimal("5.00"),
             sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
-            quantity = 1
+            quantity = 1,
+            packName = "Pack",
+            unitName = "Unit",
+            unitsPerPack = 10,
+            sellingQuantity = 1
         )
     }
 }

@@ -262,27 +262,72 @@ fun SettingsScreen(
             }
 
             // 5. ABOUT APP
-            SettingsSectionCard(title = "About", icon = Icons.Default.Info) {
+            SettingsSectionCard(title = "About MargiQ", icon = Icons.Default.Info) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "Profit & Margin Calculator",
+                        text = "MargiQ",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
-                        text = "Version 1.0.0 (Native Android with Jetpack Compose)",
+                        text = "Know your cost. Own your margin.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Version ${com.example.profitmargincalculator.BuildConfig.VERSION_NAME} (Native Android with Jetpack Compose)",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Text(
+                        text = "Created by SuBZeRo",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Disclaimer: This application is a product-pricing and margin estimation tool for retailers, wholesalers, and pharmacies. Tax treatment and GST Input Tax Credit eligibility depend on applicable legal provisions and individual dealer registration.",
+                        text = "Disclaimer: MargiQ is a professional product-pricing and margin estimation tool designed for pharmacies, retailers, and distributors. Tax treatment and GST Input Tax Credit eligibility depend on applicable statutory provisions and dealer registration.",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // 6. CREATOR & VERSION FOOTER
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "MargiQ",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    ),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Created by SuBZeRo",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Version ${com.example.profitmargincalculator.BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 

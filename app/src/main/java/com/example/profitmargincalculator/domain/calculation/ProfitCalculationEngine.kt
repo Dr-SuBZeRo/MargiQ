@@ -9,7 +9,7 @@ import java.math.RoundingMode
 
 /**
  * Pure Kotlin financial calculation engine for Indian retail, pharmacy,
- * and product pricing calculations with GST and tax-mode handling.
+ * and product pricing calculations with GST, pack sizes, and individual-unit metrics.
  *
  * Uses BigDecimal with 10 decimal digits of precision for intermediate
  * arithmetic to prevent premature rounding errors.
@@ -34,10 +34,16 @@ object ProfitCalculationEngine {
             return CalculationResult.invalid("Selling tax rate cannot be negative.")
         }
         if (input.quantity <= 0) {
-            return CalculationResult.invalid("Quantity must be at least 1.")
+            return CalculationResult.invalid("Purchase quantity must be at least 1.")
+        }
+        if (input.unitsPerPack <= 0) {
+            return CalculationResult.invalid("Units per pack must be at least 1.")
+        }
+        if (input.sellingQuantity < 0) {
+            return CalculationResult.invalid("Selling quantity cannot be negative.")
         }
 
-        // 1. Purchase Side Calculations
+        // 1. Purchase Side Calculations (Per Pack)
         val taxablePurchaseBase: BigDecimal
         val purchaseTaxAmount: BigDecimal
         val purchaseInvoiceTotal: BigDecimal
@@ -70,7 +76,7 @@ object ProfitCalculationEngine {
             }
         }
 
-        // 2. Input Tax Credit (ITC) & Economic Cost
+        // 2. Input Tax Credit (ITC) & Economic Cost (Per Pack)
         val isItcEligible = input.purchaseTaxClassification == PurchaseTaxClassification.RECOVERABLE_GST &&
                 input.isInputTaxCreditEnabled
 
@@ -94,7 +100,7 @@ object ProfitCalculationEngine {
             }
         }
 
-        // 3. Selling Side Calculations
+        // 3. Selling Side Calculations (Per Pack)
         val netSalesRevenue: BigDecimal
         val sellingTaxAmount: BigDecimal
         val customerSellingPrice: BigDecimal
@@ -127,20 +133,20 @@ object ProfitCalculationEngine {
             }
         }
 
-        // 4. Profit & Core Financial Metrics
-        // Profit per unit = Net sales revenue - Economic purchase cost
-        val profitPerUnit = netSalesRevenue.subtract(economicPurchaseCost)
+        // 4. Profit & Core Financial Metrics (Per Pack)
+        // Profit per pack = Net sales revenue - Economic purchase cost
+        val profitPerPack = netSalesRevenue.subtract(economicPurchaseCost)
 
-        // Profit margin (%) = (Profit per unit / Net sales revenue) * 100
+        // Profit margin (%) = (Profit per pack / Net sales revenue) * 100
         val profitMargin = if (netSalesRevenue.compareTo(BigDecimal.ZERO) > 0) {
-            profitPerUnit.divide(netSalesRevenue, CALC_SCALE, RoundingMode.HALF_UP).multiply(HUNDRED)
+            profitPerPack.divide(netSalesRevenue, CALC_SCALE, RoundingMode.HALF_UP).multiply(HUNDRED)
         } else {
             null
         }
 
-        // Markup (%) = (Profit per unit / Economic purchase cost) * 100
+        // Markup (%) = (Profit per pack / Economic purchase cost) * 100
         val markup = if (economicPurchaseCost.compareTo(BigDecimal.ZERO) > 0) {
-            profitPerUnit.divide(economicPurchaseCost, CALC_SCALE, RoundingMode.HALF_UP).multiply(HUNDRED)
+            profitPerPack.divide(economicPurchaseCost, CALC_SCALE, RoundingMode.HALF_UP).multiply(HUNDRED)
         } else {
             null
         }
@@ -152,15 +158,33 @@ object ProfitCalculationEngine {
             null
         }
 
-        // 5. Quantity Scaled Totals
-        val quantityBd = BigDecimal(input.quantity)
-        val totalPurchaseInvoiceTotal = purchaseInvoiceTotal.multiply(quantityBd)
-        val totalSellingCustomerTotal = customerSellingPrice.multiply(quantityBd)
-        val totalOutputTax = sellingTaxAmount.multiply(quantityBd)
-        val totalEligibleInputTaxCredit = eligibleInputTaxCredit.multiply(quantityBd)
-        val totalProfit = profitPerUnit.multiply(quantityBd)
+        // 5. Individual Unit Calculations
+        val unitsPerPackBd = BigDecimal(input.unitsPerPack)
+        val costPerIndividualUnit = economicPurchaseCost.divide(unitsPerPackBd, CALC_SCALE, RoundingMode.HALF_UP)
+        val purchaseInvoicePerIndividualUnit = purchaseInvoiceTotal.divide(unitsPerPackBd, CALC_SCALE, RoundingMode.HALF_UP)
+        val customerPricePerIndividualUnit = customerSellingPrice.divide(unitsPerPackBd, CALC_SCALE, RoundingMode.HALF_UP)
+        val netRevenuePerIndividualUnit = netSalesRevenue.divide(unitsPerPackBd, CALC_SCALE, RoundingMode.HALF_UP)
+        val profitPerIndividualUnit = profitPerPack.divide(unitsPerPackBd, CALC_SCALE, RoundingMode.HALF_UP)
 
-        // 6. Simple Cash Price Comparison (Customer Selling Price - Purchase Invoice Amount)
+        // 6. Quantity Scaled Totals
+        val purchasePacks = input.quantity
+        val sellingPacks = if (input.sellingQuantity <= 0) purchasePacks else input.sellingQuantity
+        val totalIndividualUnits = purchasePacks * input.unitsPerPack
+        val totalIndividualUnitsSold = sellingPacks * input.unitsPerPack
+
+        val purchaseQtyBd = BigDecimal(purchasePacks)
+        val sellingQtyBd = BigDecimal(sellingPacks)
+
+        val totalPurchaseInvoiceTotal = purchaseInvoiceTotal.multiply(purchaseQtyBd)
+        val totalEconomicPurchaseCost = economicPurchaseCost.multiply(purchaseQtyBd)
+        val totalEligibleInputTaxCredit = eligibleInputTaxCredit.multiply(purchaseQtyBd)
+
+        val totalSellingCustomerTotal = customerSellingPrice.multiply(sellingQtyBd)
+        val totalNetSalesRevenue = netSalesRevenue.multiply(sellingQtyBd)
+        val totalOutputTax = sellingTaxAmount.multiply(sellingQtyBd)
+        val totalProfit = profitPerPack.multiply(sellingQtyBd)
+
+        // 7. Simple Cash Price Comparison (Customer Selling Price - Purchase Invoice Amount)
         val simpleCashProfitPerUnit = customerSellingPrice.subtract(purchaseInvoiceTotal)
         val simpleCashProfitMargin = if (customerSellingPrice.compareTo(BigDecimal.ZERO) > 0) {
             simpleCashProfitPerUnit.divide(customerSellingPrice, CALC_SCALE, RoundingMode.HALF_UP).multiply(HUNDRED)
@@ -183,14 +207,29 @@ object ProfitCalculationEngine {
             customerSellingPrice = customerSellingPrice,
             netSalesRevenue = netSalesRevenue,
 
-            profitPerUnit = profitPerUnit,
+            profitPerUnit = profitPerPack,
             profitMargin = profitMargin,
             markup = markup,
             costPercentage = costPercentage,
 
-            quantity = input.quantity,
+            packName = input.packName.ifBlank { "Pack" },
+            unitName = input.unitName.ifBlank { "Unit" },
+            unitsPerPack = input.unitsPerPack,
+            totalIndividualUnits = totalIndividualUnits,
+            sellingQuantity = sellingPacks,
+            totalIndividualUnitsSold = totalIndividualUnitsSold,
+
+            costPerIndividualUnit = costPerIndividualUnit,
+            purchaseInvoicePerIndividualUnit = purchaseInvoicePerIndividualUnit,
+            customerPricePerIndividualUnit = customerPricePerIndividualUnit,
+            netRevenuePerIndividualUnit = netRevenuePerIndividualUnit,
+            profitPerIndividualUnit = profitPerIndividualUnit,
+
+            quantity = purchasePacks,
             totalPurchaseInvoiceTotal = totalPurchaseInvoiceTotal,
+            totalEconomicPurchaseCost = totalEconomicPurchaseCost,
             totalSellingCustomerTotal = totalSellingCustomerTotal,
+            totalNetSalesRevenue = totalNetSalesRevenue,
             totalOutputTax = totalOutputTax,
             totalEligibleInputTaxCredit = totalEligibleInputTaxCredit,
             totalProfit = totalProfit,

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -88,7 +89,7 @@ fun MetricHeroCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "ESTIMATED PROFIT PER UNIT",
+                    text = "ESTIMATED PROFIT PER ${result.packName.uppercase()}",
                     style = MaterialTheme.typography.labelMedium.copy(
                         letterSpacing = 1.sp,
                         fontWeight = FontWeight.Bold
@@ -116,29 +117,43 @@ fun MetricHeroCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Primary Big Number
-            Text(
-                text = if (result.isValid) {
-                    IndianCurrencyFormatter.formatCurrency(result.roundedProfitPerUnit)
-                } else {
-                    "—"
-                },
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.ExtraBold
-                ),
-                color = profitColor
-            )
+            // Primary Big Number (Profit per pack)
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = if (result.isValid) {
+                        IndianCurrencyFormatter.formatCurrency(result.roundedProfitPerUnit)
+                    } else {
+                        "—"
+                    },
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    ),
+                    color = profitColor
+                )
+
+                if (result.isValid && result.unitsPerPack > 1) {
+                    Text(
+                        text = "(${IndianCurrencyFormatter.formatCurrency(result.roundedProfitPerIndividualUnit)} / ${result.unitName})",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = profitColor,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                }
+            }
 
             Text(
-                text = result.calculationBasis,
+                text = "${result.calculationBasis} • GST-Exclusive Business Profit",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // 3-Metric Summary Strip
+            // 3-Metric Summary Strip: Margin, Markup, Total Profit
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -175,11 +190,50 @@ fun MetricHeroCard(
                 )
 
                 MetricSubItem(
-                    label = "Total Profit (${result.quantity})",
+                    label = "Total Profit (${result.sellingQuantity} ${result.packName}s)",
                     value = IndianCurrencyFormatter.formatCurrency(result.roundedTotalProfit),
                     isHighlighted = true,
                     highlightColor = profitColor
                 )
+            }
+
+            // Pack & Unit Quick Callout if pack size > 1
+            if (result.isValid && result.unitsPerPack > 1) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Pack Details",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "1 ${result.packName} = ${result.unitsPerPack} ${result.unitName}s",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "Unit Cost & Selling",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "₹${result.roundedCostPerIndividualUnit} cost • ₹${result.roundedCustomerPricePerIndividualUnit} MRP",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
         }
     }

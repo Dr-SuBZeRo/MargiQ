@@ -28,12 +28,27 @@ class CalculatorViewModel(
     val uiState: StateFlow<CalculatorUiState> = _uiState.asStateFlow()
 
     init {
-        // Initial recalculation with default example
+        // Initial recalculation with default reference scenario
         recalculate()
     }
 
     fun onProductNameChanged(name: String) {
         _uiState.update { it.copy(productName = name) }
+        recalculate()
+    }
+
+    fun onPackNameChanged(name: String) {
+        _uiState.update { it.copy(packName = name) }
+        recalculate()
+    }
+
+    fun onUnitNameChanged(name: String) {
+        _uiState.update { it.copy(unitName = name) }
+        recalculate()
+    }
+
+    fun onUnitsPerPackChanged(value: String) {
+        _uiState.update { it.copy(unitsPerPackText = value) }
         recalculate()
     }
 
@@ -91,6 +106,12 @@ class CalculatorViewModel(
 
     fun onQuantityChanged(value: String) {
         _uiState.update { it.copy(quantityText = value) }
+        // If selling quantity matches previous purchase quantity or hasn't been decoupled, keep sync
+        recalculate()
+    }
+
+    fun onSellingQuantityChanged(value: String) {
+        _uiState.update { it.copy(sellingQuantityText = value) }
         recalculate()
     }
 
@@ -156,8 +177,12 @@ class CalculatorViewModel(
                 sellingTaxRateText = default.sellingTaxRate.toPlainString(),
                 sellingPriceMode = default.sellingPriceMode,
                 quantityText = default.quantity.toString(),
+                packName = default.packName,
+                unitName = default.unitName,
+                unitsPerPackText = default.unitsPerPack.toString(),
+                sellingQuantityText = default.sellingQuantity.toString(),
                 currentSavedId = null,
-                userMessage = "Restored default reference calculation"
+                userMessage = "Restored reference calculation (5 strips, 10 tablets/strip)"
             )
         }
         recalculate()
@@ -178,6 +203,10 @@ class CalculatorViewModel(
                     sellingTaxRateText = prefs.defaultSellingTaxRate.toPlainString(),
                     sellingPriceMode = prefs.defaultSellingPriceMode,
                     quantityText = prefs.defaultQuantity.toString(),
+                    packName = "Pack",
+                    unitName = "Unit",
+                    unitsPerPackText = "10",
+                    sellingQuantityText = prefs.defaultQuantity.toString(),
                     currentSavedId = null,
                     userMessage = "Reset to saved calculator defaults"
                 )
@@ -213,6 +242,10 @@ class CalculatorViewModel(
                 sellingTaxRateText = input.sellingTaxRate.toPlainString(),
                 sellingPriceMode = input.sellingPriceMode,
                 quantityText = input.quantity.toString(),
+                packName = input.packName,
+                unitName = input.unitName,
+                unitsPerPackText = input.unitsPerPack.toString(),
+                sellingQuantityText = input.sellingQuantity.toString(),
                 currentSavedId = entity.id,
                 userMessage = "Loaded '${entity.productName}' from history"
             )
@@ -227,6 +260,8 @@ class CalculatorViewModel(
         val sellingPrice = IndianCurrencyFormatter.parseInput(state.sellingPriceText) ?: BigDecimal.ZERO
         val sellingTaxRate = IndianCurrencyFormatter.parseInput(state.sellingTaxRateText) ?: BigDecimal.ZERO
         val quantity = state.quantityText.toIntOrNull() ?: 1
+        val unitsPerPack = state.unitsPerPackText.toIntOrNull() ?: 0
+        val sellingQuantity = state.sellingQuantityText.toIntOrNull() ?: quantity
 
         val input = CalculationInput(
             productName = state.productName,
@@ -238,7 +273,11 @@ class CalculatorViewModel(
             sellingPrice = sellingPrice,
             sellingTaxRate = sellingTaxRate,
             sellingPriceMode = state.sellingPriceMode,
-            quantity = quantity
+            quantity = quantity,
+            packName = state.packName.ifBlank { "Pack" },
+            unitName = state.unitName.ifBlank { "Unit" },
+            unitsPerPack = unitsPerPack,
+            sellingQuantity = sellingQuantity
         )
 
         val result = ProfitCalculationEngine.calculate(input)

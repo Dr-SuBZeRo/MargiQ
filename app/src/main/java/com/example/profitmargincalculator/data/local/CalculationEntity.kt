@@ -24,6 +24,15 @@ data class CalculationEntity(
     val sellingPriceMode: String,
     val quantity: Int,
 
+    // Pack & Unit Details
+    val packName: String = "Pack",
+    val unitName: String = "Unit",
+    val unitsPerPack: Int = 1,
+    val sellingQuantity: Int = 1,
+    val costPerIndividualUnit: String = "0.00",
+    val revenuePerIndividualUnit: String = "0.00",
+    val profitPerIndividualUnit: String = "0.00",
+
     val economicPurchaseCost: String,
     val netSalesRevenue: String,
     val profitPerUnit: String,
@@ -46,7 +55,11 @@ data class CalculationEntity(
             sellingPrice = BigDecimal(sellingPrice),
             sellingTaxRate = BigDecimal(sellingTaxRate),
             sellingPriceMode = TaxPriceMode.valueOf(sellingPriceMode),
-            quantity = quantity
+            quantity = quantity,
+            packName = packName,
+            unitName = unitName,
+            unitsPerPack = unitsPerPack,
+            sellingQuantity = sellingQuantity
         )
     }
 
@@ -65,6 +78,13 @@ data class CalculationEntity(
                 sellingTaxRate = input.sellingTaxRate.toPlainString(),
                 sellingPriceMode = input.sellingPriceMode.name,
                 quantity = input.quantity,
+                packName = result.packName,
+                unitName = result.unitName,
+                unitsPerPack = result.unitsPerPack,
+                sellingQuantity = result.sellingQuantity,
+                costPerIndividualUnit = result.roundedCostPerIndividualUnit.toPlainString(),
+                revenuePerIndividualUnit = result.roundedNetRevenuePerIndividualUnit.toPlainString(),
+                profitPerIndividualUnit = result.roundedProfitPerIndividualUnit.toPlainString(),
                 economicPurchaseCost = result.roundedEconomicCost.toPlainString(),
                 netSalesRevenue = result.roundedNetSalesRevenue.toPlainString(),
                 profitPerUnit = result.roundedProfitPerUnit.toPlainString(),
