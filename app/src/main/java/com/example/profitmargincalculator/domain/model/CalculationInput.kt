@@ -1,0 +1,33 @@
+package com.example.profitmargincalculator.domain.model
+
+import java.math.BigDecimal
+
+data class CalculationInput(
+    val productName: String = "Sample Product",
+    val ptr: BigDecimal = BigDecimal("48.00"),
+    val purchaseTaxRate: BigDecimal = BigDecimal("5.00"),
+    val purchasePriceMode: TaxPriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+    val purchaseTaxClassification: PurchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+    val isInputTaxCreditEnabled: Boolean = true,
+    val sellingPrice: BigDecimal = BigDecimal("135.00"),
+    val sellingTaxRate: BigDecimal = BigDecimal("5.00"),
+    val sellingPriceMode: TaxPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+    val quantity: Int = 1
+) {
+    companion object {
+        fun defaultExample(): CalculationInput = CalculationInput()
+
+        fun empty(): CalculationInput = CalculationInput(
+            productName = "",
+            ptr = BigDecimal.ZERO,
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = BigDecimal.ZERO,
+            sellingTaxRate = BigDecimal("5.00"),
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            quantity = 1
+        )
+    }
+}
