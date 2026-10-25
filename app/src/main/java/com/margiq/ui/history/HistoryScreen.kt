@@ -277,6 +277,14 @@ fun HistoryItemCard(
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1
                     )
+                    if (entity.supplierName.isNotBlank()) {
+                        Text(
+                            text = "Supplier: ${entity.supplierName}",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1
+                        )
+                    }
                     Text(
                         text = dateString,
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),

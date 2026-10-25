@@ -50,7 +50,11 @@ data class CalculationResult(
     val totalEligibleInputTaxCredit: BigDecimal,
     val totalProfit: BigDecimal,
 
+    // Supplier Name (Metadata)
+    val supplierName: String = "",
+
     // Supplier Offers & Discounts
+    val isSupplierDiscountEnabled: Boolean = false,
     val isSupplierOfferEnabled: Boolean = false,
     val offerBuyQuantity: Int = 1,
     val offerFreeQuantity: Int = 0,
@@ -201,6 +205,8 @@ data class CalculationResult(
             totalOutputTax = BigDecimal.ZERO,
             totalEligibleInputTaxCredit = BigDecimal.ZERO,
             totalProfit = BigDecimal.ZERO,
+            supplierName = "",
+            isSupplierDiscountEnabled = false,
             isSupplierOfferEnabled = false,
             offerBuyQuantity = 1,
             offerFreeQuantity = 0,

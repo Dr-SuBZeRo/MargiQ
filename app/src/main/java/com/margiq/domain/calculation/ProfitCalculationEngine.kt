@@ -61,8 +61,10 @@ object ProfitCalculationEngine {
         if (input.sellingQuantity < 0) {
             return CalculationResult.invalid("Selling quantity cannot be negative.")
         }
-        if (input.supplierDiscountPercent < BigDecimal.ZERO || input.supplierDiscountPercent > HUNDRED) {
-            return CalculationResult.invalid("Supplier discount must be between 0% and 100%.")
+        if (input.isSupplierDiscountEnabled) {
+            if (input.supplierDiscountPercent < BigDecimal.ZERO || input.supplierDiscountPercent > HUNDRED) {
+                return CalculationResult.invalid("Supplier discount must be between 0% and 100%.")
+            }
         }
         if (input.isSupplierOfferEnabled) {
             if (input.offerBuyQuantity <= 0) {
@@ -118,7 +120,8 @@ object ProfitCalculationEngine {
         val paidQtyBd = BigDecimal(paidPacks)
         val grossPaidPurchaseValue = input.ptr.multiply(paidQtyBd)
 
-        val discountFraction = input.supplierDiscountPercent.divide(HUNDRED, CALC_SCALE, RoundingMode.HALF_UP)
+        val effectiveDiscountPercent = if (input.isSupplierDiscountEnabled) input.supplierDiscountPercent else BigDecimal.ZERO
+        val discountFraction = effectiveDiscountPercent.divide(HUNDRED, CALC_SCALE, RoundingMode.HALF_UP)
         val ptrDiscountAmount = input.ptr.multiply(discountFraction)
         val discountedPtr = input.ptr.subtract(ptrDiscountAmount)
         val totalSupplierDiscountAmount = ptrDiscountAmount.multiply(paidQtyBd)
@@ -345,12 +348,14 @@ object ProfitCalculationEngine {
             totalEligibleInputTaxCredit = totalEligibleInputTaxCredit,
             totalProfit = totalProfit,
 
+            supplierName = input.supplierName,
+            isSupplierDiscountEnabled = input.isSupplierDiscountEnabled,
             isSupplierOfferEnabled = input.isSupplierOfferEnabled,
             offerBuyQuantity = offerBuyQty,
             offerFreeQuantity = offerFreeQty,
             freePacksReceived = freePacks,
             totalPacksReceived = totalPacksReceived,
-            supplierDiscountPercent = input.supplierDiscountPercent,
+            supplierDiscountPercent = effectiveDiscountPercent,
             supplierDiscountAmount = totalSupplierDiscountAmount,
             grossPaidPurchaseValue = grossPaidPurchaseValue,
             effectiveCostPerReceivedPack = effectiveCostPerReceivedPack,

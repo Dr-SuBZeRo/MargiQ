@@ -64,8 +64,10 @@ class CalculatorViewModelTest {
         assertEquals("5", state.quantityText)
         assertEquals(50, state.calculationResult.totalIndividualUnits)
 
-        // Supplier Offer & Discount Defaults
+        // Supplier Details & Offer/Discount Defaults
+        assertEquals("", state.supplierName)
         assertFalse(state.isSupplierOfferEnabled)
+        assertFalse(state.isSupplierDiscountEnabled)
         assertEquals("0.00", state.supplierDiscountText)
 
         // Check reference calculation results
@@ -144,13 +146,66 @@ class CalculatorViewModelTest {
         viewModel.onPtrChanged("100.00")
         viewModel.onPurchaseTaxRateChanged("5.00")
         viewModel.onQuantityChanged("10")
+        viewModel.onSupplierDiscountToggled(true)
         viewModel.onSupplierDiscountChanged("10.00")
 
         val state = viewModel.uiState.value
+        assertTrue(state.isSupplierDiscountEnabled)
         assertEquals(BigDecimal("1000.00"), state.calculationResult.roundedGrossPaidPurchaseValue)
         assertEquals(BigDecimal("100.00"), state.calculationResult.roundedSupplierDiscountAmount)
         assertEquals(BigDecimal("945.00"), state.calculationResult.roundedTotalPurchaseInvoice)
         assertEquals(BigDecimal("900.00"), state.calculationResult.roundedTotalEconomicCost)
+    }
+
+    @Test
+    fun testDisabledSupplierDiscountIgnoresStoredPercentage() {
+        val fakePrefs = FakePreferencesRepository()
+        val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
+
+        viewModel.onPtrChanged("100.00")
+        viewModel.onPurchaseTaxRateChanged("5.00")
+        viewModel.onQuantityChanged("10")
+        // Store percentage but leave toggle disabled
+        viewModel.onSupplierDiscountToggled(false)
+        viewModel.onSupplierDiscountChanged("15.00")
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isSupplierDiscountEnabled)
+        assertEquals(BigDecimal("1000.00"), state.calculationResult.roundedGrossPaidPurchaseValue)
+        assertEquals(BigDecimal("0.00"), state.calculationResult.roundedSupplierDiscountAmount)
+        assertEquals(BigDecimal("1050.00"), state.calculationResult.roundedTotalPurchaseInvoice)
+        assertEquals(BigDecimal("1000.00"), state.calculationResult.roundedTotalEconomicCost)
+    }
+
+    @Test
+    fun testBothSupplierDiscountAndOfferOperateIndependentlyAndSimultaneously() {
+        val fakePrefs = FakePreferencesRepository()
+        val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
+
+        viewModel.onPtrChanged("100.00")
+        viewModel.onPurchaseTaxRateChanged("5.00")
+        viewModel.onSellingPriceChanged("150.00")
+        viewModel.onSellingTaxRateChanged("5.00")
+        viewModel.onQuantityChanged("10")
+        viewModel.onUnitsPerPackChanged("10")
+
+        // Enable both
+        viewModel.onSupplierDiscountToggled(true)
+        viewModel.onSupplierDiscountChanged("10.00")
+        viewModel.onSupplierOfferToggled(true)
+        viewModel.onOfferBuyQuantityChanged("10")
+        viewModel.onOfferFreeQuantityChanged("2")
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isSupplierDiscountEnabled)
+        assertTrue(state.isSupplierOfferEnabled)
+        assertEquals(2, state.calculationResult.freePacksReceived)
+        assertEquals(12, state.calculationResult.totalPacksReceived)
+        // 10 packs * 100 = 1000 gross. Discount 10% = 100. Net taxable = 900. GST 5% = 45. Invoice = 945.
+        assertEquals(BigDecimal("100.00"), state.calculationResult.roundedSupplierDiscountAmount)
+        assertEquals(BigDecimal("945.00"), state.calculationResult.roundedTotalPurchaseInvoice)
+        // Total economic cost = 900 (since ITC enabled). Effective cost per 12 received packs = 900 / 12 = 75.00
+        assertEquals(BigDecimal("75.00"), state.calculationResult.roundedEffectiveCostPerReceivedPack)
     }
 
     @Test
@@ -159,12 +214,14 @@ class CalculatorViewModelTest {
         val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
 
         viewModel.onProductNameChanged("Paracetamol 650 Strip")
+        viewModel.onSupplierNameChanged("Apex Distributorship")
         viewModel.onUnitsPerPackChanged("15")
         viewModel.onQuantityChanged("4")
+        viewModel.onSupplierDiscountToggled(true)
+        viewModel.onSupplierDiscountChanged("5.00")
         viewModel.onSupplierOfferToggled(true)
         viewModel.onOfferBuyQuantityChanged("2")
         viewModel.onOfferFreeQuantityChanged("1")
-        viewModel.onSupplierDiscountChanged("5.00")
 
         viewModel.saveCalculation()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -175,11 +232,13 @@ class CalculatorViewModelTest {
         assertEquals(1, fakeDao.items.size)
         val saved = fakeDao.items[0]
         assertEquals("Paracetamol 650 Strip", saved.productName)
+        assertEquals("Apex Distributorship", saved.supplierName)
         assertEquals(15, saved.unitsPerPack)
         assertEquals(4, saved.quantity)
         assertTrue(saved.isSupplierOfferEnabled)
         assertEquals(2, saved.offerBuyQuantity)
         assertEquals(1, saved.offerFreeQuantity)
+        assertTrue(saved.isSupplierDiscountEnabled)
         assertEquals("5.00", saved.supplierDiscountPercent)
     }
 
@@ -191,6 +250,7 @@ class CalculatorViewModelTest {
         val entity = CalculationEntity(
             id = 42,
             productName = "Amoxicillin 500mg",
+            supplierName = "MedPlus Pharma",
             ptr = "100.00",
             purchaseTaxRate = "5.00",
             purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE.name,
@@ -206,6 +266,7 @@ class CalculatorViewModelTest {
             offerFreeQuantity = 2,
             freePacksReceived = 2,
             totalPacksReceived = 12,
+            isSupplierDiscountEnabled = true,
             supplierDiscountPercent = "10.00",
             supplierDiscountAmount = "100.00",
             effectiveCostPerReceivedPack = "75.00",
@@ -225,11 +286,13 @@ class CalculatorViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals("Amoxicillin 500mg", state.productName)
+        assertEquals("MedPlus Pharma", state.supplierName)
         assertEquals("10", state.unitsPerPackText)
         assertEquals("10", state.quantityText)
         assertTrue(state.isSupplierOfferEnabled)
         assertEquals("10", state.offerBuyQuantityText)
         assertEquals("2", state.offerFreeQuantityText)
+        assertTrue(state.isSupplierDiscountEnabled)
         assertEquals("10.00", state.supplierDiscountText)
         assertEquals(12, state.calculationResult.totalPacksReceived)
         assertEquals(BigDecimal("75.00"), state.calculationResult.roundedEffectiveCostPerReceivedPack)
@@ -273,7 +336,8 @@ class CalculatorViewModelTest {
         private var idCounter = 1L
 
         override fun getAllCalculations(): Flow<List<CalculationEntity>> = flowOf(items)
-        override fun searchCalculations(query: String): Flow<List<CalculationEntity>> = flowOf(items.filter { it.productName.contains(query) })
+        override fun searchCalculations(query: String): Flow<List<CalculationEntity>> =
+            flowOf(items.filter { it.productName.contains(query, ignoreCase = true) || it.supplierName.contains(query, ignoreCase = true) })
         override suspend fun getCalculationById(id: Long): CalculationEntity? = items.find { it.id == id }
         override suspend fun insertCalculation(entity: CalculationEntity): Long {
             val assignedId = if (entity.id == 0L) idCounter++ else entity.id

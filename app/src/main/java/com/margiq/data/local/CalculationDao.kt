@@ -14,7 +14,7 @@ interface CalculationDao {
     @Query("SELECT * FROM calculations ORDER BY timestamp DESC")
     fun getAllCalculations(): Flow<List<CalculationEntity>>
 
-    @Query("SELECT * FROM calculations WHERE productName LIKE '%' || :query || '%' ORDER BY timestamp DESC")
+    @Query("SELECT * FROM calculations WHERE productName LIKE '%' || :query || '%' OR supplierName LIKE '%' || :query || '%' ORDER BY timestamp DESC")
     fun searchCalculations(query: String): Flow<List<CalculationEntity>>
 
     @Query("SELECT * FROM calculations WHERE id = :id LIMIT 1")

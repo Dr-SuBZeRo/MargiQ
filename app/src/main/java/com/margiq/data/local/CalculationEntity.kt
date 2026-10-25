@@ -13,6 +13,7 @@ data class CalculationEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val productName: String,
+    val supplierName: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val ptr: String,
     val purchaseTaxRate: String,
@@ -33,7 +34,8 @@ data class CalculationEntity(
     val revenuePerIndividualUnit: String = "0.00",
     val profitPerIndividualUnit: String = "0.00",
 
-    // Supplier Offers & Discounts (v1.2.0)
+    // Supplier Offers & Discounts (v1.2.0 & v2.0.1)
+    val isSupplierDiscountEnabled: Boolean = false,
     val isSupplierOfferEnabled: Boolean = false,
     val offerBuyQuantity: Int = 1,
     val offerFreeQuantity: Int = 0,
@@ -55,8 +57,10 @@ data class CalculationEntity(
     val calculationBasis: String
 ) {
     fun toCalculationInput(): CalculationInput {
+        val discountEnabled = isSupplierDiscountEnabled || (try { BigDecimal(supplierDiscountPercent) > BigDecimal.ZERO } catch (_: Exception) { false })
         return CalculationInput(
             productName = productName,
+            supplierName = supplierName,
             ptr = BigDecimal(ptr),
             purchaseTaxRate = BigDecimal(purchaseTaxRate),
             purchasePriceMode = TaxPriceMode.valueOf(purchasePriceMode),
@@ -70,10 +74,11 @@ data class CalculationEntity(
             unitName = unitName,
             unitsPerPack = unitsPerPack,
             sellingQuantity = sellingQuantity,
+            isSupplierDiscountEnabled = discountEnabled,
+            supplierDiscountPercent = try { BigDecimal(supplierDiscountPercent) } catch (_: Exception) { BigDecimal.ZERO },
             isSupplierOfferEnabled = isSupplierOfferEnabled,
             offerBuyQuantity = offerBuyQuantity,
-            offerFreeQuantity = offerFreeQuantity,
-            supplierDiscountPercent = try { BigDecimal(supplierDiscountPercent) } catch (_: Exception) { BigDecimal.ZERO }
+            offerFreeQuantity = offerFreeQuantity
         )
     }
 
@@ -82,6 +87,7 @@ data class CalculationEntity(
             return CalculationEntity(
                 id = id,
                 productName = input.productName.ifBlank { "Untitled Calculation" },
+                supplierName = input.supplierName,
                 timestamp = System.currentTimeMillis(),
                 ptr = input.ptr.toPlainString(),
                 purchaseTaxRate = input.purchaseTaxRate.toPlainString(),
@@ -99,6 +105,7 @@ data class CalculationEntity(
                 costPerIndividualUnit = result.roundedCostPerIndividualUnit.toPlainString(),
                 revenuePerIndividualUnit = result.roundedNetRevenuePerIndividualUnit.toPlainString(),
                 profitPerIndividualUnit = result.roundedProfitPerIndividualUnit.toPlainString(),
+                isSupplierDiscountEnabled = result.isSupplierDiscountEnabled,
                 isSupplierOfferEnabled = result.isSupplierOfferEnabled,
                 offerBuyQuantity = result.offerBuyQuantity,
                 offerFreeQuantity = result.offerFreeQuantity,

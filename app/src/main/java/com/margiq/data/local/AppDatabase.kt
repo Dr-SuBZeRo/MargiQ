@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [CalculationEntity::class], version = 3, exportSchema = true)
+@Database(entities = [CalculationEntity::class], version = 4, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun calculationDao(): CalculationDao
@@ -41,6 +41,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE calculations ADD COLUMN supplierName TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE calculations ADD COLUMN isSupplierDiscountEnabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE calculations SET isSupplierDiscountEnabled = 1 WHERE supplierDiscountPercent != '0.00' AND supplierDiscountPercent != '0'")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -48,7 +56,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "profit_calculator_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                 INSTANCE = instance
                 instance

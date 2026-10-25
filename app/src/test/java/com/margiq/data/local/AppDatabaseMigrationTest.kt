@@ -72,7 +72,32 @@ class AppDatabaseMigrationTest {
     }
 
     @Test
-    fun testMigration1To2To3OnRealSqlitePreservesExistingRecordsAndReopensCorrectly() {
+    fun testMigration3To4ExecutesAllAlterTableStatements() {
+        val executedStatements = mutableListOf<String>()
+
+        val fakeDb = Proxy.newProxyInstance(
+            SupportSQLiteDatabase::class.java.classLoader,
+            arrayOf(SupportSQLiteDatabase::class.java)
+        ) { _, method, args ->
+            if (method.name == "execSQL" && args != null && args.isNotEmpty()) {
+                executedStatements.add(args[0] as String)
+            }
+            null
+        } as SupportSQLiteDatabase
+
+        assertEquals(3, AppDatabase.MIGRATION_3_4.startVersion)
+        assertEquals(4, AppDatabase.MIGRATION_3_4.endVersion)
+
+        AppDatabase.MIGRATION_3_4.migrate(fakeDb)
+
+        assertEquals(3, executedStatements.size)
+        assertTrue(executedStatements.any { it.contains("supplierName") && it.contains("DEFAULT ''") })
+        assertTrue(executedStatements.any { it.contains("isSupplierDiscountEnabled") && it.contains("DEFAULT 0") })
+        assertTrue(executedStatements.any { it.contains("UPDATE calculations") && it.contains("isSupplierDiscountEnabled = 1") })
+    }
+
+    @Test
+    fun testMigration1To2To3To4OnRealSqlitePreservesExistingRecordsAndReopensCorrectly() {
         val connection = DriverManager.getConnection("jdbc:sqlite::memory:")
         val stmt = connection.createStatement()
 
@@ -137,7 +162,10 @@ class AppDatabaseMigrationTest {
         // 4. Execute Migration 2 -> 3
         AppDatabase.MIGRATION_2_3.migrate(supportDb)
 
-        // 5. Query migrated table and assert fields
+        // 5. Execute Migration 3 -> 4
+        AppDatabase.MIGRATION_3_4.migrate(supportDb)
+
+        // 6. Query migrated table and assert fields
         val rs = stmt.executeQuery("SELECT * FROM calculations WHERE id = 101")
         assertTrue("Record with id 101 must exist after migration", rs.next())
 
@@ -170,10 +198,15 @@ class AppDatabaseMigrationTest {
         assertEquals("0.00", rs.getString("supplierDiscountAmount"))
         assertEquals("0.00", rs.getString("effectiveCostPerReceivedPack"))
 
-        // 6. Construct CalculationEntity from migrated database row and verify reopening
+        // Assert v4 columns have safe default values
+        assertEquals("", rs.getString("supplierName"))
+        assertEquals(0, rs.getInt("isSupplierDiscountEnabled"))
+
+        // 7. Construct CalculationEntity from migrated database row and verify reopening
         val entity = CalculationEntity(
             id = rs.getLong("id"),
             productName = rs.getString("productName"),
+            supplierName = rs.getString("supplierName"),
             timestamp = rs.getLong("timestamp"),
             ptr = rs.getString("ptr"),
             purchaseTaxRate = rs.getString("purchaseTaxRate"),
@@ -191,6 +224,7 @@ class AppDatabaseMigrationTest {
             costPerIndividualUnit = rs.getString("costPerIndividualUnit"),
             revenuePerIndividualUnit = rs.getString("revenuePerIndividualUnit"),
             profitPerIndividualUnit = rs.getString("profitPerIndividualUnit"),
+            isSupplierDiscountEnabled = rs.getInt("isSupplierDiscountEnabled") == 1,
             isSupplierOfferEnabled = rs.getInt("isSupplierOfferEnabled") == 1,
             offerBuyQuantity = rs.getInt("offerBuyQuantity"),
             offerFreeQuantity = rs.getInt("offerFreeQuantity"),
@@ -213,9 +247,11 @@ class AppDatabaseMigrationTest {
 
         val reopenedInput = entity.toCalculationInput()
         assertEquals("Paracetamol 650 Strip", reopenedInput.productName)
+        assertEquals("", reopenedInput.supplierName)
         assertEquals(BigDecimal("48.00"), reopenedInput.ptr)
         assertEquals(5, reopenedInput.quantity)
         assertEquals(1, reopenedInput.unitsPerPack)
+        assertFalse(reopenedInput.isSupplierDiscountEnabled)
         assertFalse(reopenedInput.isSupplierOfferEnabled)
         assertEquals(0, reopenedInput.supplierDiscountPercent.compareTo(BigDecimal.ZERO))
 

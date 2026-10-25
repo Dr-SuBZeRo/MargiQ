@@ -787,6 +787,7 @@ class ProfitCalculationEngineTest {
             ptr = BigDecimal("100.00"),
             purchaseTaxRate = BigDecimal("5.00"),
             purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            isSupplierDiscountEnabled = true,
             supplierDiscountPercent = BigDecimal.ZERO
         )
         val result = ProfitCalculationEngine.calculate(zeroDiscInput)
@@ -794,6 +795,26 @@ class ProfitCalculationEngineTest {
         assertEquals(BigDecimal("100.00"), result.taxablePurchaseBase.setScale(2))
         assertEquals(BigDecimal("5.00"), result.purchaseTaxAmount.setScale(2))
         assertEquals(BigDecimal("105.00"), result.roundedPurchaseInvoice)
+    }
+
+    @Test
+    fun testSupplierDiscount_WhenDisabled_StoredPercentageIgnored() {
+        val input = CalculationInput(
+            ptr = BigDecimal("100.00"),
+            quantity = 10,
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            isSupplierDiscountEnabled = false,
+            supplierDiscountPercent = BigDecimal("15.00")
+        )
+        val result = ProfitCalculationEngine.calculate(input)
+        assertTrue(result.isValid)
+        assertEquals(BigDecimal("1000.00"), result.roundedGrossPaidPurchaseValue)
+        assertEquals(BigDecimal("0.00"), result.roundedSupplierDiscountAmount)
+        assertEquals(BigDecimal("1050.00"), result.roundedTotalPurchaseInvoice)
+        assertEquals(BigDecimal("1000.00"), result.roundedTotalEconomicCost)
     }
 
     @Test
@@ -807,6 +828,7 @@ class ProfitCalculationEngineTest {
             purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
             purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
             isInputTaxCreditEnabled = true,
+            isSupplierDiscountEnabled = true,
             supplierDiscountPercent = BigDecimal("10.00")
         )
 
@@ -836,6 +858,7 @@ class ProfitCalculationEngineTest {
             purchasePriceMode = TaxPriceMode.TAX_INCLUSIVE,
             purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
             isInputTaxCreditEnabled = true,
+            isSupplierDiscountEnabled = true,
             supplierDiscountPercent = BigDecimal("10.00")
         )
 
@@ -852,6 +875,7 @@ class ProfitCalculationEngineTest {
         val input = CalculationInput(
             ptr = BigDecimal("100.00"),
             purchaseTaxRate = BigDecimal("5.00"),
+            isSupplierDiscountEnabled = true,
             supplierDiscountPercent = BigDecimal("100.00"),
             sellingPrice = BigDecimal("150.00")
         )
@@ -867,12 +891,18 @@ class ProfitCalculationEngineTest {
 
     @Test
     fun testSupplierDiscount_NegativeAndOver100PercentRejected() {
-        val negInput = CalculationInput(supplierDiscountPercent = BigDecimal("-5.00"))
+        val negInput = CalculationInput(
+            isSupplierDiscountEnabled = true,
+            supplierDiscountPercent = BigDecimal("-5.00")
+        )
         val negResult = ProfitCalculationEngine.calculate(negInput)
         assertFalse(negResult.isValid)
         assertEquals("Supplier discount must be between 0% and 100%.", negResult.validationMessage)
 
-        val overInput = CalculationInput(supplierDiscountPercent = BigDecimal("105.00"))
+        val overInput = CalculationInput(
+            isSupplierDiscountEnabled = true,
+            supplierDiscountPercent = BigDecimal("105.00")
+        )
         val overResult = ProfitCalculationEngine.calculate(overInput)
         assertFalse(overResult.isValid)
         assertEquals("Supplier discount must be between 0% and 100%.", overResult.validationMessage)
@@ -897,6 +927,7 @@ class ProfitCalculationEngineTest {
             isSupplierOfferEnabled = true,
             offerBuyQuantity = 10,
             offerFreeQuantity = 2,
+            isSupplierDiscountEnabled = true,
             supplierDiscountPercent = BigDecimal("10.00"),
             sellingPrice = BigDecimal("150.00"),
             sellingTaxRate = BigDecimal("5.00"),

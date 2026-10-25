@@ -4,6 +4,7 @@ import java.math.BigDecimal
 
 data class CalculationInput(
     val productName: String = "Sample Product",
+    val supplierName: String = "",
     val ptr: BigDecimal = BigDecimal("48.00"),
     val purchaseTaxRate: BigDecimal = BigDecimal("5.00"),
     val purchasePriceMode: TaxPriceMode = TaxPriceMode.TAX_EXCLUSIVE,
@@ -17,14 +18,16 @@ data class CalculationInput(
     val unitName: String = "Tablet",
     val unitsPerPack: Int = 10,
     val sellingQuantity: Int = 5,
+    val isSupplierDiscountEnabled: Boolean = false,
+    val supplierDiscountPercent: BigDecimal = BigDecimal.ZERO,
     val isSupplierOfferEnabled: Boolean = false,
     val offerBuyQuantity: Int = 1,
-    val offerFreeQuantity: Int = 0,
-    val supplierDiscountPercent: BigDecimal = BigDecimal.ZERO
+    val offerFreeQuantity: Int = 0
 ) {
     companion object {
         fun defaultExample(): CalculationInput = CalculationInput(
             productName = "Sample Product",
+            supplierName = "",
             ptr = BigDecimal("48.00"),
             purchaseTaxRate = BigDecimal("5.00"),
             purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
@@ -38,14 +41,16 @@ data class CalculationInput(
             unitName = "Tablet",
             unitsPerPack = 10,
             sellingQuantity = 5,
+            isSupplierDiscountEnabled = false,
+            supplierDiscountPercent = BigDecimal.ZERO,
             isSupplierOfferEnabled = false,
             offerBuyQuantity = 1,
-            offerFreeQuantity = 0,
-            supplierDiscountPercent = BigDecimal.ZERO
+            offerFreeQuantity = 0
         )
 
         fun empty(): CalculationInput = CalculationInput(
             productName = "",
+            supplierName = "",
             ptr = BigDecimal.ZERO,
             purchaseTaxRate = BigDecimal("5.00"),
             purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
@@ -59,10 +64,11 @@ data class CalculationInput(
             unitName = "Unit",
             unitsPerPack = 10,
             sellingQuantity = 1,
+            isSupplierDiscountEnabled = false,
+            supplierDiscountPercent = BigDecimal.ZERO,
             isSupplierOfferEnabled = false,
             offerBuyQuantity = 1,
-            offerFreeQuantity = 0,
-            supplierDiscountPercent = BigDecimal.ZERO
+            offerFreeQuantity = 0
         )
     }
 }

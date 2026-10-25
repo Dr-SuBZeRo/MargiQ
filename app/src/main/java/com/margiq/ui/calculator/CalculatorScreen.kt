@@ -215,7 +215,7 @@ fun CalculatorScreen(
                 }
             }
 
-            // 3. Product Details Card
+            // 3. Consolidated Product Details Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -248,6 +248,7 @@ fun CalculatorScreen(
                         }
                     }
 
+                    // A. Product Name
                     OutlinedTextField(
                         value = uiState.productName,
                         onValueChange = { viewModel.onProductNameChanged(it) },
@@ -261,33 +262,29 @@ fun CalculatorScreen(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
-                }
-            }
 
-            // 4. Units per Pack Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Pack Information",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    // B. Supplier Name (Optional)
+                    OutlinedTextField(
+                        value = uiState.supplierName,
+                        onValueChange = { viewModel.onSupplierNameChanged(it) },
+                        label = { Text("Supplier Name (Optional)") },
+                        placeholder = { Text("e.g. Apollo Wholesalers, MedPlus Dist...") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        modifier = Modifier.fillMaxWidth()
                     )
 
+                    // C. Units per Pack
                     CleanNumberInputField(
                         value = uiState.unitsPerPackText,
                         onValueChange = { viewModel.onUnitsPerPackChanged(it) },
                         label = "Units per Pack",
                         suffixText = "units",
-                        helperText = "Number of individual units (e.g. tablets, capsules, pieces) inside 1 pack",
+                        helperText = "Number of individual units (e.g. tablets, capsules) in 1 pack",
                         keyboardType = KeyboardType.Number,
                         imeAction = ImeAction.Next
                     )
@@ -311,82 +308,70 @@ fun CalculatorScreen(
                         }
                     }
 
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "💡 1 pack = ${uiState.calculationResult.unitsPerPack} individual units (used to calculate unit cost & margin)",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(10.dp)
-                        )
-                    }
-                }
-            }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            // 5. Supplier Offers & Discounts Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+                    // D. Supplier Discount Toggle
                     Row(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.LocalOffer,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(
-                            text = "Supplier Offers & Discounts",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Enable Supplier Discount",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Discount applied to taxable purchase value before purchase GST",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Switch(
+                            checked = uiState.isSupplierDiscountEnabled,
+                            onCheckedChange = { viewModel.onSupplierDiscountToggled(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            )
                         )
                     }
 
-                    // Supplier Discount (%)
-                    CleanNumberInputField(
-                        value = uiState.supplierDiscountText,
-                        onValueChange = { viewModel.onSupplierDiscountChanged(it) },
-                        label = "Supplier Discount (%)",
-                        suffixText = "%",
-                        helperText = "Discount applied to taxable purchase value before purchase GST",
-                        imeAction = ImeAction.Next
-                    )
+                    if (uiState.isSupplierDiscountEnabled) {
+                        CleanNumberInputField(
+                            value = uiState.supplierDiscountText,
+                            onValueChange = { viewModel.onSupplierDiscountChanged(it) },
+                            label = "Supplier Discount (%)",
+                            suffixText = "%",
+                            helperText = "Direct invoice discount from supplier (0% - 100%)",
+                            imeAction = ImeAction.Next
+                        )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        DISCOUNT_PRESETS.forEach { preset ->
-                            FilterChip(
-                                selected = uiState.supplierDiscountText == preset,
-                                onClick = { viewModel.setQuickSupplierDiscount(preset) },
-                                label = { Text("$preset%") },
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            DISCOUNT_PRESETS.forEach { preset ->
+                                FilterChip(
+                                    selected = uiState.supplierDiscountText == preset,
+                                    onClick = { viewModel.setQuickSupplierDiscount(preset) },
+                                    label = { Text("$preset%") },
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                    // Enable Buy X, Get Y Free Offer Toggle
+                    // E. Buy X, Get Y Free Offer Toggle
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -497,7 +482,7 @@ fun CalculatorScreen(
                 }
             }
 
-            // 6. Purchase Side Section Card (PTR, Tax, Mode, ITC, Purchase Quantity)
+            // 4. Purchase Side Section Card (PTR, Tax, Mode, ITC, Purchase Quantity)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -622,7 +607,7 @@ fun CalculatorScreen(
                 }
             }
 
-            // 7. Selling Side Section Card (MRP, Tax, Mode)
+            // 5. Selling Side Section Card (MRP, Tax, Mode)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -677,17 +662,17 @@ fun CalculatorScreen(
                 }
             }
 
-            // 8. Detailed Financial Breakdown Card
+            // 6. Detailed Financial Breakdown Card
             FinancialBreakdownCard(
                 result = uiState.calculationResult,
                 isExpanded = uiState.showDetailedBreakdown,
                 onToggleExpand = { viewModel.toggleDetailedBreakdown() }
             )
 
-            // 9. Simple Cash Flow Comparison Card
+            // 7. Simple Cash Flow Comparison Card
             SimpleCashComparisonCard(result = uiState.calculationResult)
 
-            // 10. Bottom Form Controls: Reset / Clear
+            // 8. Bottom Form Controls: Reset / Clear
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

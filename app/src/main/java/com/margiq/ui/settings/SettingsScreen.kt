@@ -243,17 +243,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 3. CURRENCY & NUMBER FORMATTING
-            SettingsSectionCard(title = "Regional & Number Formatting", icon = Icons.Default.Info) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SettingsInfoRow(label = "Currency Symbol", value = "₹ (INR, Indian Rupee)")
-                    SettingsInfoRow(label = "Grouping Style", value = "Indian Numbering (Lakhs & Crores)")
-                    SettingsInfoRow(label = "Example", value = "₹1,23,456.78")
-                    SettingsInfoRow(label = "Calculation Engine", value = "Deterministic BigDecimal (10 decimal places)")
-                }
-            }
-
-            // 4. PRIVACY & RELIABILITY
+            // 3. PRIVACY & RELIABILITY
             SettingsSectionCard(title = "Privacy & Local Storage", icon = Icons.Default.Lock) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -266,7 +256,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 5. ABOUT APP
+            // 4. ABOUT APP
             SettingsSectionCard(title = "About MargiQ", icon = Icons.Default.Info) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
@@ -297,7 +287,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 6. CREATOR & VERSION FOOTER
+            // 5. CREATOR & VERSION FOOTER
             HorizontalDivider(
                 modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
@@ -439,28 +429,6 @@ private fun ThemeOptionRow(
         RadioButton(
             selected = isSelected,
             onClick = onClick
-        )
-    }
-}
-
-@Composable
-private fun SettingsInfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

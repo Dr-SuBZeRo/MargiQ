@@ -9,6 +9,7 @@ import com.margiq.domain.util.IndianCurrencyFormatter
 
 data class CalculatorUiState(
     val productName: String = "Sample Product",
+    val supplierName: String = "",
     val ptrText: String = "48.00",
     val purchaseTaxRateText: String = "5.00",
     val purchasePriceMode: TaxPriceMode = TaxPriceMode.TAX_EXCLUSIVE,
@@ -22,11 +23,12 @@ data class CalculatorUiState(
     // Units per pack
     val unitsPerPackText: String = "10",
 
-    // Supplier Offers & Discounts (v1.2.0)
+    // Supplier Offers & Discounts (v1.2.0 & v2.0.1)
+    val isSupplierDiscountEnabled: Boolean = false,
+    val supplierDiscountText: String = "0.00",
     val isSupplierOfferEnabled: Boolean = false,
     val offerBuyQuantityText: String = "1",
     val offerFreeQuantityText: String = "1",
-    val supplierDiscountText: String = "0.00",
 
     val calculationInput: CalculationInput = CalculationInput.defaultExample(),
     val calculationResult: CalculationResult = ProfitCalculationEngine.calculate(CalculationInput.defaultExample()),
@@ -47,13 +49,16 @@ data class CalculatorUiState(
             if (productName.isNotBlank()) {
                 appendLine("Product: $productName")
             }
+            if (supplierName.isNotBlank()) {
+                appendLine("Supplier: $supplierName")
+            }
             appendLine("Pack Size: ${res.unitsPerPack} units per pack")
             appendLine("Paid Purchase Quantity: ${res.quantity} packs")
             if (res.isSupplierOfferEnabled && res.freePacksReceived > 0) {
                 appendLine("Supplier Offer: Buy ${res.offerBuyQuantity}, Get ${res.offerFreeQuantity} Free (+${res.freePacksReceived} free packs)")
                 appendLine("Total Packs Received: ${res.totalPacksReceived} packs")
             }
-            if (res.supplierDiscountPercent > java.math.BigDecimal.ZERO) {
+            if (res.isSupplierDiscountEnabled && res.supplierDiscountPercent > java.math.BigDecimal.ZERO) {
                 appendLine("Supplier Discount: ${IndianCurrencyFormatter.formatPercentage(res.supplierDiscountPercent)}")
             }
             appendLine("----------------------------------")

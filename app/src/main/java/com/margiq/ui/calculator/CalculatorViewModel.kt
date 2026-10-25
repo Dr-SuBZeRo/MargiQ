@@ -37,6 +37,11 @@ class CalculatorViewModel(
         recalculate()
     }
 
+    fun onSupplierNameChanged(name: String) {
+        _uiState.update { it.copy(supplierName = name) }
+        recalculate()
+    }
+
     fun onUnitsPerPackChanged(value: String) {
         _uiState.update { it.copy(unitsPerPackText = value) }
         recalculate()
@@ -79,7 +84,12 @@ class CalculatorViewModel(
         }
     }
 
-    // --- Supplier Offers & Discounts (v1.2.0) ---
+    // --- Supplier Offers & Discounts (v1.2.0 & v2.0.1) ---
+    fun onSupplierDiscountToggled(enabled: Boolean) {
+        _uiState.update { it.copy(isSupplierDiscountEnabled = enabled) }
+        recalculate()
+    }
+
     fun onSupplierOfferToggled(enabled: Boolean) {
         _uiState.update { it.copy(isSupplierOfferEnabled = enabled) }
         recalculate()
@@ -101,7 +111,12 @@ class CalculatorViewModel(
     }
 
     fun setQuickSupplierDiscount(discountPercent: String) {
-        _uiState.update { it.copy(supplierDiscountText = discountPercent) }
+        _uiState.update {
+            it.copy(
+                isSupplierDiscountEnabled = true,
+                supplierDiscountText = discountPercent
+            )
+        }
         recalculate()
     }
 
@@ -203,6 +218,7 @@ class CalculatorViewModel(
         _uiState.update {
             it.copy(
                 productName = default.productName,
+                supplierName = "",
                 ptrText = default.ptr.toPlainString(),
                 purchaseTaxRateText = default.purchaseTaxRate.toPlainString(),
                 purchasePriceMode = default.purchasePriceMode,
@@ -213,10 +229,11 @@ class CalculatorViewModel(
                 sellingPriceMode = default.sellingPriceMode,
                 quantityText = default.quantity.toString(),
                 unitsPerPackText = default.unitsPerPack.toString(),
+                isSupplierDiscountEnabled = false,
+                supplierDiscountText = "0.00",
                 isSupplierOfferEnabled = false,
                 offerBuyQuantityText = "1",
                 offerFreeQuantityText = "1",
-                supplierDiscountText = "0.00",
                 currentSavedId = null,
                 userMessage = "Restored reference calculation (5 packs, 10 units/pack)"
             )
@@ -230,6 +247,7 @@ class CalculatorViewModel(
             _uiState.update {
                 it.copy(
                     productName = "",
+                    supplierName = "",
                     ptrText = "0.00",
                     purchaseTaxRateText = prefs.defaultPurchaseTaxRate.toPlainString(),
                     purchasePriceMode = prefs.defaultPurchasePriceMode,
@@ -240,10 +258,11 @@ class CalculatorViewModel(
                     sellingPriceMode = prefs.defaultSellingPriceMode,
                     quantityText = prefs.defaultQuantity.toString(),
                     unitsPerPackText = "10",
+                    isSupplierDiscountEnabled = false,
+                    supplierDiscountText = "0.00",
                     isSupplierOfferEnabled = false,
                     offerBuyQuantityText = "1",
                     offerFreeQuantityText = "1",
-                    supplierDiscountText = "0.00",
                     currentSavedId = null,
                     userMessage = "Reset to saved calculator defaults"
                 )
@@ -256,8 +275,10 @@ class CalculatorViewModel(
         _uiState.update {
             it.copy(
                 productName = "",
+                supplierName = "",
                 ptrText = "",
                 sellingPriceText = "",
+                isSupplierDiscountEnabled = false,
                 supplierDiscountText = "0.00",
                 isSupplierOfferEnabled = false,
                 currentSavedId = null,
@@ -269,9 +290,11 @@ class CalculatorViewModel(
 
     fun loadCalculation(entity: CalculationEntity) {
         val input = entity.toCalculationInput()
+        val isDiscountOn = entity.isSupplierDiscountEnabled || (try { BigDecimal(entity.supplierDiscountPercent) > BigDecimal.ZERO } catch (_: Exception) { false })
         _uiState.update {
             it.copy(
                 productName = input.productName,
+                supplierName = entity.supplierName,
                 ptrText = input.ptr.toPlainString(),
                 purchaseTaxRateText = input.purchaseTaxRate.toPlainString(),
                 purchasePriceMode = input.purchasePriceMode,
@@ -282,10 +305,11 @@ class CalculatorViewModel(
                 sellingPriceMode = input.sellingPriceMode,
                 quantityText = input.quantity.toString(),
                 unitsPerPackText = input.unitsPerPack.toString(),
+                isSupplierDiscountEnabled = isDiscountOn,
+                supplierDiscountText = entity.supplierDiscountPercent,
                 isSupplierOfferEnabled = entity.isSupplierOfferEnabled,
                 offerBuyQuantityText = entity.offerBuyQuantity.toString(),
                 offerFreeQuantityText = entity.offerFreeQuantity.toString(),
-                supplierDiscountText = entity.supplierDiscountPercent,
                 currentSavedId = entity.id,
                 userMessage = "Loaded '${entity.productName}' from history"
             )
@@ -324,6 +348,7 @@ class CalculatorViewModel(
 
         val input = CalculationInput(
             productName = state.productName,
+            supplierName = state.supplierName,
             ptr = ptr,
             purchaseTaxRate = purchaseTaxRate,
             purchasePriceMode = state.purchasePriceMode,
@@ -334,10 +359,11 @@ class CalculatorViewModel(
             sellingPriceMode = state.sellingPriceMode,
             quantity = quantity,
             unitsPerPack = unitsPerPack,
+            isSupplierDiscountEnabled = state.isSupplierDiscountEnabled,
+            supplierDiscountPercent = supplierDiscount,
             isSupplierOfferEnabled = state.isSupplierOfferEnabled,
             offerBuyQuantity = offerBuyQty,
-            offerFreeQuantity = offerFreeQty,
-            supplierDiscountPercent = supplierDiscount
+            offerFreeQuantity = offerFreeQty
         )
 
         val result = ProfitCalculationEngine.calculate(input)
