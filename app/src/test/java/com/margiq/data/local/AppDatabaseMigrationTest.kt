@@ -165,6 +165,9 @@ class AppDatabaseMigrationTest {
         // 5. Execute Migration 3 -> 4
         AppDatabase.MIGRATION_3_4.migrate(supportDb)
 
+        // 5b. Execute Migration 4 -> 5 (Product Library)
+        AppDatabase.MIGRATION_4_5.migrate(supportDb)
+
         // 6. Query migrated table and assert fields
         val rs = stmt.executeQuery("SELECT * FROM calculations WHERE id = 101")
         assertTrue("Record with id 101 must exist after migration", rs.next())
@@ -260,6 +263,72 @@ class AppDatabaseMigrationTest {
         assertEquals(BigDecimal("80.57"), recalculated.roundedProfitPerUnit)
 
         rs.close()
+
+        // 8. Test products table created in Migration 4 -> 5
+        stmt.execute("""
+            INSERT INTO products (
+                id, productName, supplierName, ptr, purchaseTaxRate, purchasePriceMode,
+                purchaseTaxClassification, isInputTaxCreditEnabled, sellingPrice,
+                sellingTaxRate, sellingPriceMode, quantity, packName, unitName,
+                unitsPerPack, sellingQuantity, isSupplierDiscountEnabled, supplierDiscountPercent,
+                isSupplierOfferEnabled, offerBuyQuantity, offerFreeQuantity, createdAt, updatedAt
+            ) VALUES (
+                1, 'Amoxicillin 500mg', 'Apollo Wholesale', '85.00', '12.00', 'TAX_EXCLUSIVE',
+                'RECOVERABLE_GST', 1, '160.00', '12.00', 'TAX_INCLUSIVE', 10, 'Strip', 'Capsule',
+                10, 10, 1, '5.00', 1, 10, 2, 1700000000000, 1700000000000
+            );
+        """.trimIndent())
+
+        val prodRs = stmt.executeQuery("SELECT * FROM products WHERE id = 1")
+        assertTrue("Product record with id 1 must exist", prodRs.next())
+        assertEquals("Amoxicillin 500mg", prodRs.getString("productName"))
+        assertEquals("Apollo Wholesale", prodRs.getString("supplierName"))
+        assertEquals("85.00", prodRs.getString("ptr"))
+        assertEquals("160.00", prodRs.getString("sellingPrice"))
+        assertEquals(10, prodRs.getInt("unitsPerPack"))
+        assertEquals(1, prodRs.getInt("isSupplierDiscountEnabled"))
+        assertEquals("5.00", prodRs.getString("supplierDiscountPercent"))
+        assertEquals(1, prodRs.getInt("isSupplierOfferEnabled"))
+        assertEquals(10, prodRs.getInt("offerBuyQuantity"))
+        assertEquals(2, prodRs.getInt("offerFreeQuantity"))
+
+        val productEntity = ProductEntity(
+            id = prodRs.getLong("id"),
+            productName = prodRs.getString("productName"),
+            supplierName = prodRs.getString("supplierName"),
+            ptr = prodRs.getString("ptr"),
+            purchaseTaxRate = prodRs.getString("purchaseTaxRate"),
+            purchasePriceMode = prodRs.getString("purchasePriceMode"),
+            purchaseTaxClassification = prodRs.getString("purchaseTaxClassification"),
+            isInputTaxCreditEnabled = prodRs.getInt("isInputTaxCreditEnabled") == 1,
+            sellingPrice = prodRs.getString("sellingPrice"),
+            sellingTaxRate = prodRs.getString("sellingTaxRate"),
+            sellingPriceMode = prodRs.getString("sellingPriceMode"),
+            quantity = prodRs.getInt("quantity"),
+            packName = prodRs.getString("packName"),
+            unitName = prodRs.getString("unitName"),
+            unitsPerPack = prodRs.getInt("unitsPerPack"),
+            sellingQuantity = prodRs.getInt("sellingQuantity"),
+            isSupplierDiscountEnabled = prodRs.getInt("isSupplierDiscountEnabled") == 1,
+            supplierDiscountPercent = prodRs.getString("supplierDiscountPercent"),
+            isSupplierOfferEnabled = prodRs.getInt("isSupplierOfferEnabled") == 1,
+            offerBuyQuantity = prodRs.getInt("offerBuyQuantity"),
+            offerFreeQuantity = prodRs.getInt("offerFreeQuantity"),
+            createdAt = prodRs.getLong("createdAt"),
+            updatedAt = prodRs.getLong("updatedAt")
+        )
+
+        val prodInput = productEntity.toCalculationInput()
+        assertEquals("Amoxicillin 500mg", prodInput.productName)
+        assertEquals("Apollo Wholesale", prodInput.supplierName)
+        assertEquals(BigDecimal("85.00"), prodInput.ptr)
+        assertTrue(prodInput.isSupplierDiscountEnabled)
+        assertTrue(prodInput.isSupplierOfferEnabled)
+
+        val prodResult = ProfitCalculationEngine.calculate(prodInput)
+        assertTrue(prodResult.isValid)
+        prodRs.close()
+
         stmt.close()
         connection.close()
     }

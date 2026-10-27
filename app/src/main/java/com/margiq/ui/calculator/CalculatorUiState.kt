@@ -34,6 +34,7 @@ data class CalculatorUiState(
     val calculationResult: CalculationResult = ProfitCalculationEngine.calculate(CalculationInput.defaultExample()),
 
     val currentSavedId: Long? = null,
+    val currentLoadedProductId: Long? = null,
     val userMessage: String? = null,
     val showDetailedBreakdown: Boolean = true,
     val showCashComparison: Boolean = false

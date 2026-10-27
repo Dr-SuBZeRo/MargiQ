@@ -7,6 +7,12 @@ import kotlinx.serialization.Serializable
 data object CalculatorDestination : NavKey
 
 @Serializable
+data object ProductLibraryDestination : NavKey
+
+@Serializable
+data object CompareDestination : NavKey
+
+@Serializable
 data object HistoryDestination : NavKey
 
 @Serializable

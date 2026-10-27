@@ -6,7 +6,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.margiq.ProfitCalculatorApp
 import com.margiq.ui.calculator.CalculatorViewModel
+import com.margiq.ui.compare.CompareViewModel
 import com.margiq.ui.history.HistoryViewModel
+import com.margiq.ui.library.ProductLibraryViewModel
 import com.margiq.ui.settings.SettingsViewModel
 
 object AppViewModelProvider {
@@ -15,7 +17,8 @@ object AppViewModelProvider {
             val app = profitCalculatorApp()
             CalculatorViewModel(
                 calculationRepository = app.calculationRepository,
-                preferencesRepository = app.preferencesRepository
+                preferencesRepository = app.preferencesRepository,
+                productRepository = app.productRepository
             )
         }
         initializer {
@@ -28,6 +31,18 @@ object AppViewModelProvider {
             val app = profitCalculatorApp()
             SettingsViewModel(
                 preferencesRepository = app.preferencesRepository
+            )
+        }
+        initializer {
+            val app = profitCalculatorApp()
+            ProductLibraryViewModel(
+                productRepository = app.productRepository
+            )
+        }
+        initializer {
+            val app = profitCalculatorApp()
+            CompareViewModel(
+                productRepository = app.productRepository
             )
         }
     }

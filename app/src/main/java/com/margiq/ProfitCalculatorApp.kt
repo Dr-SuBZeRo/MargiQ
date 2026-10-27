@@ -5,10 +5,14 @@ import com.margiq.data.local.AppDatabase
 import com.margiq.data.preferences.PreferencesRepository
 import com.margiq.data.preferences.dataStore
 import com.margiq.data.repository.CalculationRepository
+import com.margiq.data.repository.ProductRepository
 
 class ProfitCalculatorApp : Application() {
 
     lateinit var calculationRepository: CalculationRepository
+        private set
+
+    lateinit var productRepository: ProductRepository
         private set
 
     lateinit var preferencesRepository: PreferencesRepository
@@ -18,6 +22,7 @@ class ProfitCalculatorApp : Application() {
         super.onCreate()
         val database = AppDatabase.getDatabase(this)
         calculationRepository = CalculationRepository(database.calculationDao())
+        productRepository = ProductRepository(database.productDao())
         preferencesRepository = PreferencesRepository(dataStore)
     }
 }

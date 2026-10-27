@@ -19,6 +19,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Check
@@ -85,6 +90,8 @@ fun CalculatorScreen(
     viewModel: CalculatorViewModel,
     onNavigateToHistory: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onOpenDrawer: () -> Unit = {},
+    onNavigateToProductLibrary: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -103,6 +110,15 @@ fun CalculatorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                },
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
@@ -127,6 +143,13 @@ fun CalculatorScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToProductLibrary) {
+                        Icon(
+                            imageVector = Icons.Default.Inventory2,
+                            contentDescription = "Product Library",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     IconButton(onClick = onNavigateToHistory) {
                         Icon(
                             imageVector = Icons.Default.History,
@@ -238,13 +261,42 @@ fun CalculatorScreen(
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
 
-                        TextButton(onClick = { viewModel.restoreExampleScenario() }) {
-                            Icon(
-                                imageVector = Icons.Default.RestartAlt,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 4.dp)
-                            )
-                            Text("Example Values")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = onNavigateToProductLibrary,
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FolderOpen,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp).padding(end = 2.dp)
+                                )
+                                Text("Load", style = MaterialTheme.typography.labelSmall)
+                            }
+                            OutlinedButton(
+                                onClick = { viewModel.saveToProductLibrary() },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BookmarkAdd,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp).padding(end = 2.dp)
+                                )
+                                Text("Save Product", style = MaterialTheme.typography.labelSmall)
+                            }
+                            TextButton(onClick = { viewModel.restoreExampleScenario() }) {
+                                Icon(
+                                    imageVector = Icons.Default.RestartAlt,
+                                    contentDescription = null,
+                                    modifier = Modifier.padding(end = 2.dp).size(14.dp)
+                                )
+                                Text("Example", style = MaterialTheme.typography.labelSmall)
+                            }
                         }
                     }
 

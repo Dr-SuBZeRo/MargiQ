@@ -7,10 +7,11 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [CalculationEntity::class], version = 4, exportSchema = true)
+@Database(entities = [CalculationEntity::class, ProductEntity::class], version = 5, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun calculationDao(): CalculationDao
+    abstract fun productDao(): ProductDao
 
     companion object {
         @Volatile
@@ -49,6 +50,38 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `products` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `productName` TEXT NOT NULL,
+                        `supplierName` TEXT NOT NULL DEFAULT '',
+                        `ptr` TEXT NOT NULL DEFAULT '0.00',
+                        `purchaseTaxRate` TEXT NOT NULL DEFAULT '5.00',
+                        `purchasePriceMode` TEXT NOT NULL DEFAULT 'TAX_EXCLUSIVE',
+                        `purchaseTaxClassification` TEXT NOT NULL DEFAULT 'RECOVERABLE_GST',
+                        `isInputTaxCreditEnabled` INTEGER NOT NULL DEFAULT 1,
+                        `sellingPrice` TEXT NOT NULL DEFAULT '0.00',
+                        `sellingTaxRate` TEXT NOT NULL DEFAULT '5.00',
+                        `sellingPriceMode` TEXT NOT NULL DEFAULT 'TAX_INCLUSIVE',
+                        `quantity` INTEGER NOT NULL DEFAULT 1,
+                        `packName` TEXT NOT NULL DEFAULT 'Pack',
+                        `unitName` TEXT NOT NULL DEFAULT 'Unit',
+                        `unitsPerPack` INTEGER NOT NULL DEFAULT 1,
+                        `sellingQuantity` INTEGER NOT NULL DEFAULT 1,
+                        `isSupplierDiscountEnabled` INTEGER NOT NULL DEFAULT 0,
+                        `supplierDiscountPercent` TEXT NOT NULL DEFAULT '0.00',
+                        `isSupplierOfferEnabled` INTEGER NOT NULL DEFAULT 0,
+                        `offerBuyQuantity` INTEGER NOT NULL DEFAULT 1,
+                        `offerFreeQuantity` INTEGER NOT NULL DEFAULT 0,
+                        `createdAt` INTEGER NOT NULL DEFAULT 0,
+                        `updatedAt` INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -56,7 +89,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "profit_calculator_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                 INSTANCE = instance
                 instance
