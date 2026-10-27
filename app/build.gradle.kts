@@ -18,59 +18,51 @@ android {
         versionName = "2.0.1"
     }
 
+    val keystorePropertiesFile = listOf(
+        rootProject.file("keystore.properties"),
+        project.file("keystore.properties")
+    ).firstOrNull { it.exists() }
+    val keystoreProperties = Properties()
+    if (keystorePropertiesFile != null && keystorePropertiesFile.exists()) {
+        FileInputStream(keystorePropertiesFile).use { stream ->
+            keystoreProperties.load(stream)
+        }
+    }
+
+    val storeFilePath = System.getenv("MARGIQ_KEYSTORE_PATH")
+        ?: keystoreProperties.getProperty("MARGIQ_KEYSTORE_PATH")
+        ?: keystoreProperties.getProperty("storeFile")
+
+    val storePasswordVal = System.getenv("MARGIQ_KEYSTORE_PASSWORD")
+        ?: keystoreProperties.getProperty("MARGIQ_KEYSTORE_PASSWORD")
+        ?: keystoreProperties.getProperty("storePassword")
+
+    val keyAliasVal = System.getenv("MARGIQ_KEY_ALIAS")
+        ?: keystoreProperties.getProperty("MARGIQ_KEY_ALIAS")
+        ?: keystoreProperties.getProperty("keyAlias")
+
+    val keyPasswordVal = System.getenv("MARGIQ_KEY_PASSWORD")
+        ?: keystoreProperties.getProperty("MARGIQ_KEY_PASSWORD")
+        ?: keystoreProperties.getProperty("keyPassword")
+
+    val keystoreFile = if (!storeFilePath.isNullOrBlank()) {
+        val f = file(storeFilePath)
+        if (f.exists()) f else rootProject.file(storeFilePath)
+    } else null
+
+    val hasReleaseCredentials = keystoreFile != null &&
+        keystoreFile.exists() &&
+        !storePasswordVal.isNullOrBlank() &&
+        !keyAliasVal.isNullOrBlank() &&
+        !keyPasswordVal.isNullOrBlank()
+
     signingConfigs {
-        create("release") {
-            val keystorePropertiesFile = listOf(
-                rootProject.file("keystore.properties"),
-                project.file("keystore.properties")
-            ).firstOrNull { it.exists() }
-            val keystoreProperties = Properties()
-            if (keystorePropertiesFile != null && keystorePropertiesFile.exists()) {
-                FileInputStream(keystorePropertiesFile).use { stream ->
-                    keystoreProperties.load(stream)
-                }
-            }
-
-            val storeFilePath = System.getenv("MARGIQ_KEYSTORE_PATH")
-                ?: keystoreProperties.getProperty("MARGIQ_KEYSTORE_PATH")
-                ?: keystoreProperties.getProperty("storeFile")
-
-            val storePasswordVal = System.getenv("MARGIQ_KEYSTORE_PASSWORD")
-                ?: keystoreProperties.getProperty("MARGIQ_KEYSTORE_PASSWORD")
-                ?: keystoreProperties.getProperty("storePassword")
-
-            val keyAliasVal = System.getenv("MARGIQ_KEY_ALIAS")
-                ?: keystoreProperties.getProperty("MARGIQ_KEY_ALIAS")
-                ?: keystoreProperties.getProperty("keyAlias")
-
-            val keyPasswordVal = System.getenv("MARGIQ_KEY_PASSWORD")
-                ?: keystoreProperties.getProperty("MARGIQ_KEY_PASSWORD")
-                ?: keystoreProperties.getProperty("keyPassword")
-
-            val isReleaseTaskRequested = gradle.startParameter.taskNames.any {
-                it.contains("Release", ignoreCase = true)
-            }
-
-            if (!storeFilePath.isNullOrBlank() &&
-                !storePasswordVal.isNullOrBlank() &&
-                !keyAliasVal.isNullOrBlank() &&
-                !keyPasswordVal.isNullOrBlank()
-            ) {
-                storeFile = file(storeFilePath)
+        if (hasReleaseCredentials) {
+            create("release") {
+                storeFile = keystoreFile
                 storePassword = storePasswordVal
                 keyAlias = keyAliasVal
                 keyPassword = keyPasswordVal
-            } else if (isReleaseTaskRequested) {
-                throw org.gradle.api.GradleException(
-                    "\n[MargiQ Security Error] Release signing credentials are missing!\n" +
-                    "Please provide credentials via environment variables:\n" +
-                    "  - MARGIQ_KEYSTORE_PATH\n" +
-                    "  - MARGIQ_KEYSTORE_PASSWORD\n" +
-                    "  - MARGIQ_KEY_ALIAS\n" +
-                    "  - MARGIQ_KEY_PASSWORD\n" +
-                    "Or in an untracked 'keystore.properties' file in the project root.\n" +
-                    "Release builds CANNOT fall back to debug signing."
-                )
             }
         }
     }
@@ -79,7 +71,7 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
     lint {
