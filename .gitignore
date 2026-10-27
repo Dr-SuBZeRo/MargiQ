@@ -17,4 +17,13 @@ local.properties
 *.zip
 *.log
 *.apk
+*.aab
 .vscode/
+keystore.properties
+**/keystore.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+.env
+.env.*
