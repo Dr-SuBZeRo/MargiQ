@@ -2,9 +2,9 @@
 
   <img src="Icon/icon.png" alt="MargiQ App Icon" width="128" height="128" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);" />
 
-  # MargiQ
+# MargiQ
 
-  ### <i>Know your cost. Own your margin.</i>
+### <i>Know your cost. Own your margin.</i>
 
   <p align="center">
     <b>A high-precision, native Android profit and margin intelligence tool for pharmaceuticals, retail, and wholesale distribution in India.</b>
@@ -139,7 +139,7 @@ $$\text{Supplier Invoice Total} = \text{Taxable Purchase Base} + \text{Purchase 
 ### 3. Financial Metrics & Margin Breakdown
 
 | Metric | Mathematical Derivation | Practical Commercial Meaning |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | **Net Sales Revenue** | $\frac{\text{Selling Price (MRP)}}{1 + \frac{\text{Selling Tax Rate}}{100}}$ | Actual funds retained per pack after paying output GST liability (when tax-inclusive). |
 | **Economic Purchase Cost** | $\text{Taxable Base} + (\text{Purchase Tax} \times [1 - \text{ITC Enabled}])$ | Pure balance-sheet inventory cost (excludes recoverable tax credit). |
 | **Profit Per Pack** | $\text{Net Sales Revenue} - \text{Effective Cost Per Received Pack}$ | True business profit earned per unit sold. |
@@ -159,7 +159,7 @@ $$\Delta \text{ Profit Per Unit} = \text{Profit Per Unit}_A - \text{Profit Per U
 
 $$\text{Batch Economic Savings} = \left| \text{Total Batch Cost}_A - \text{Total Batch Cost}_B \right|$$
 
-$$\text{Winner Determination} = \begin{cases} 
+$$\text{Winner Determination} = \begin{cases}
 \textbf{Lowest Cost Winner:} & \min(\text{Effective Cost Per Unit}) \\
 \textbf{Highest Profit Winner:} & \max(\text{Profit Per Unit}) \\
 \textbf{Highest Margin Winner:} & \max(\text{Margin \%})
@@ -184,7 +184,7 @@ MargiQ Architecture
  │    ├── ComparisonEngine (Dual-option commercial & offer analysis)
  │    └── IndianCurrencyFormatter (L10n currency & number grouping)
  └── 🗄️ Data Layer (Room SQLite + DataStore)
-      ├── CalculationDao & CalculationEntity (SQLite DB v4)
+      ├── CalculationDao & CalculationEntity & ProductEntity (SQLite DB v5)
       └── UserPreferencesRepository (Preferences DataStore)
 ```
 
@@ -208,7 +208,7 @@ MargiQ/
 ├── .github/
 │   └── workflows/                # CI / CD verification pipelines
 ├── app/
-│   ├── schemas/                  # Versioned Room database schemas (1.json -> 4.json)
+│   ├── schemas/                  # Versioned Room database schemas (1.json -> 5.json)
 │   └── src/
 │       ├── main/
 │       │   ├── java/com/margiq/
