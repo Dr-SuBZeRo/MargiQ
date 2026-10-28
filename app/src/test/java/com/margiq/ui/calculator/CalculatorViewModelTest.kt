@@ -487,4 +487,56 @@ class CalculatorViewModelTest {
         }
     }
 
+
+    @Test
+    fun testLoadCalculationFromHistoryDoesNotMutateSavedRecord() = runTest {
+        val fakePrefs = FakePreferencesRepository()
+        val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
+
+        val entity = CalculationEntity(
+            id = 42,
+            productName = "Saved Azithromycin",
+            supplierName = "Cipla",
+            timestamp = 100000L,
+            ptr = "80.00",
+            purchaseTaxRate = "12.00",
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE.name,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST.name,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = "180.00",
+            sellingTaxRate = "12.00",
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE.name,
+            quantity = 2,
+            packName = "Strip",
+            unitName = "Tablet",
+            unitsPerPack = 6,
+            sellingQuantity = 2,
+            economicPurchaseCost = "160.00",
+            netSalesRevenue = "321.43",
+            profitPerUnit = "161.43",
+            profitMargin = "50.22",
+            markup = "100.89",
+            costPercentage = "49.78",
+            totalProfit = "161.43",
+            totalPurchaseInvoiceTotal = "179.20",
+            totalSellingCustomerTotal = "360.00",
+            calculationBasis = "Profit after excluding eligible GST credit"
+        )
+
+        // Load into calculator
+        viewModel.loadCalculation(entity)
+        val state = viewModel.uiState.value
+
+        assertEquals("Saved Azithromycin", state.productName)
+        assertEquals("Cipla", state.supplierName)
+        assertEquals("80.00", state.ptrText)
+        assertEquals("180.00", state.sellingPriceText)
+        assertEquals(6, state.unitsPerPackText.toInt())
+        assertEquals(42L, state.currentSavedId)
+
+        // Verify original entity remains unchanged
+        assertEquals("Saved Azithromycin", entity.productName)
+        assertEquals("80.00", entity.ptr)
+        assertEquals(42L, entity.id)
+    }
 }

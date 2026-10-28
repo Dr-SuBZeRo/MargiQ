@@ -14,8 +14,8 @@ android {
         applicationId = "com.margiq"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "2.1.1"
+        versionCode = 10
+        versionName = "2.1.2"
     }
 
     val keystorePropertiesFile = listOf(

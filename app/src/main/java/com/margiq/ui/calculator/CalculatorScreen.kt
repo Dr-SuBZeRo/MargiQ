@@ -88,10 +88,8 @@ private val DISCOUNT_PRESETS = listOf("0", "2", "5", "10", "15")
 @Composable
 fun CalculatorScreen(
     viewModel: CalculatorViewModel,
-    onNavigateToHistory: () -> Unit,
-    onNavigateToSettings: () -> Unit,
     onOpenDrawer: () -> Unit = {},
-    onNavigateToProductLibrary: () -> Unit = {},
+    onLoadFromHistory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -142,29 +140,7 @@ fun CalculatorScreen(
                         }
                     }
                 },
-                actions = {
-                    IconButton(onClick = onNavigateToProductLibrary) {
-                        Icon(
-                            imageVector = Icons.Default.Inventory2,
-                            contentDescription = "Product Library",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    IconButton(onClick = onNavigateToHistory) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "History",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
+                actions = {},
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -266,7 +242,7 @@ fun CalculatorScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             OutlinedButton(
-                                onClick = onNavigateToProductLibrary,
+                                onClick = onLoadFromHistory,
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                             ) {
@@ -275,19 +251,7 @@ fun CalculatorScreen(
                                     contentDescription = null,
                                     modifier = Modifier.size(14.dp).padding(end = 2.dp)
                                 )
-                                Text("Load", style = MaterialTheme.typography.labelSmall)
-                            }
-                            OutlinedButton(
-                                onClick = { viewModel.saveToProductLibrary() },
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.BookmarkAdd,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp).padding(end = 2.dp)
-                                )
-                                Text("Save Product", style = MaterialTheme.typography.labelSmall)
+                                Text("Load Saved", style = MaterialTheme.typography.labelSmall)
                             }
                             TextButton(onClick = { viewModel.restoreExampleScenario() }) {
                                 Icon(

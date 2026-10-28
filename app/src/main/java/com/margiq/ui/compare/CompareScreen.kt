@@ -2,8 +2,11 @@ package com.margiq.ui.compare
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,17 +20,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +46,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -50,24 +57,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.margiq.domain.comparison.ProductComparisonOutcome
 import com.margiq.domain.comparison.WinnerSide
-import com.margiq.domain.util.IndianCurrencyFormatter
 import com.margiq.domain.model.CalculationInput
 import com.margiq.domain.model.TaxPriceMode
-
+import com.margiq.domain.util.IndianCurrencyFormatter
+import com.margiq.theme.FinanceTheme
+import java.math.BigDecimal
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompareScreen(
     viewModel: CompareViewModel,
     onNavigateBack: () -> Unit,
-    onOpenProductPickerForSideA: () -> Unit,
-    onOpenProductPickerForSideB: () -> Unit,
-    onOpenProductPickerForSupplierBase: () -> Unit,
+    onSelectHistoryForSideA: () -> Unit,
+    onSelectHistoryForSideB: () -> Unit,
+    onSelectHistoryForSupplierBase: () -> Unit,
+    onSelectHistoryForSupplierOfferA: () -> Unit = {},
+    onSelectHistoryForSupplierOfferB: () -> Unit = {},
     onLoadIntoCalculator: (CalculationInput) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -86,15 +97,15 @@ fun CompareScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.CompareArrows,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp)
+                    Column {
+                        Text(
+                            text = "Commercial Comparison",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            text = "Comparison Mode",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                            text = "Side-by-side cost, profit & margin analysis",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
@@ -119,11 +130,16 @@ fun CompareScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Mode Tabs: Compare Products vs Compare Suppliers
             TabRow(
                 selectedTabIndex = if (uiState.activeTab == CompareTab.PRODUCTS) 0 else 1,
                 containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary
+                contentColor = MaterialTheme.colorScheme.primary,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        Modifier.tabIndicatorOffset(tabPositions[if (uiState.activeTab == CompareTab.PRODUCTS) 0 else 1]),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             ) {
                 Tab(
                     selected = uiState.activeTab == CompareTab.PRODUCTS,
@@ -148,15 +164,17 @@ fun CompareScreen(
                     CompareProductsContent(
                         uiState = uiState,
                         viewModel = viewModel,
-                        onOpenPickerA = onOpenProductPickerForSideA,
-                        onOpenPickerB = onOpenProductPickerForSideB,
+                        onOpenPickerA = onSelectHistoryForSideA,
+                        onOpenPickerB = onSelectHistoryForSideB,
                         onLoadIntoCalculator = onLoadIntoCalculator
                     )
                 } else {
                     CompareSuppliersContent(
                         uiState = uiState,
                         viewModel = viewModel,
-                        onOpenPickerBase = onOpenProductPickerForSupplierBase,
+                        onOpenPickerBase = onSelectHistoryForSupplierBase,
+                        onOpenPickerOfferA = onSelectHistoryForSupplierOfferA,
+                        onOpenPickerOfferB = onSelectHistoryForSupplierOfferB,
                         onLoadIntoCalculator = onLoadIntoCalculator
                     )
                 }
@@ -164,7 +182,6 @@ fun CompareScreen(
         }
     }
 }
-
 @Composable
 fun CompareProductsContent(
     uiState: CompareUiState,
@@ -173,36 +190,32 @@ fun CompareProductsContent(
     onOpenPickerB: () -> Unit,
     onLoadIntoCalculator: (CalculationInput) -> Unit
 ) {
-    // 1. Comparison Results Summary Card
-    uiState.productsComparison?.let { outcome ->
+    val outcome = uiState.productsComparison
+    if (outcome != null) {
         if (outcome.isValid && outcome.highlight != null) {
             ComparisonResultCard(
                 outcome = outcome,
-                titleA = uiState.productSideA.productName.ifBlank { "Product A" },
-                titleB = uiState.productSideB.productName.ifBlank { "Product B" },
-                subtitleA = uiState.productSideA.supplierName,
-                subtitleB = uiState.productSideB.supplierName
+                titleA = uiState.productSideA.productName.ifBlank { "Option A" },
+                titleB = uiState.productSideB.productName.ifBlank { "Option B" }
             )
+        } else if (!outcome.isValid && outcome.validationMessage != null) {
+            ValidationBanner(message = outcome.validationMessage)
         }
     }
 
-    // 2. Side A Product Details
     ProductInputSideCard(
-        sideLabel = "Side A",
+        sideLabel = "Option A",
         state = uiState.productSideA,
-        onSelectFromLibrary = onOpenPickerA,
+        onSelectFromHistory = onOpenPickerA,
         onUpdate = { modifier -> viewModel.updateSideA(modifier) },
-        onSaveToLibrary = { viewModel.saveProductFromSide(isSideA = true) },
         onLoadInCalculator = { onLoadIntoCalculator(uiState.productSideA.toCalculationInput()) }
     )
 
-    // 3. Side B Product Details
     ProductInputSideCard(
-        sideLabel = "Side B",
+        sideLabel = "Option B",
         state = uiState.productSideB,
-        onSelectFromLibrary = onOpenPickerB,
+        onSelectFromHistory = onOpenPickerB,
         onUpdate = { modifier -> viewModel.updateSideB(modifier) },
-        onSaveToLibrary = { viewModel.saveProductFromSide(isSideA = false) },
         onLoadInCalculator = { onLoadIntoCalculator(uiState.productSideB.toCalculationInput()) }
     )
 }
@@ -212,105 +225,79 @@ fun CompareSuppliersContent(
     uiState: CompareUiState,
     viewModel: CompareViewModel,
     onOpenPickerBase: () -> Unit,
+    onOpenPickerOfferA: () -> Unit = {},
+    onOpenPickerOfferB: () -> Unit = {},
     onLoadIntoCalculator: (CalculationInput) -> Unit
 ) {
-    // 1. Supplier Comparison Results Summary Card
-    uiState.suppliersComparison?.let { outcome ->
+    val outcome = uiState.suppliersComparison
+    if (outcome != null) {
         if (outcome.isValid && outcome.highlight != null) {
             ComparisonResultCard(
                 outcome = outcome,
                 titleA = uiState.supplierSideA.supplierName.ifBlank { "Supplier A" },
-                titleB = uiState.supplierSideB.supplierName.ifBlank { "Supplier B" },
-                subtitleA = "Offer A",
-                subtitleB = "Offer B"
+                titleB = uiState.supplierSideB.supplierName.ifBlank { "Supplier B" }
             )
+        } else if (!outcome.isValid && outcome.validationMessage != null) {
+            ValidationBanner(message = outcome.validationMessage)
         }
     }
 
-    // 2. Base Product Card
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Base Product Details",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-                OutlinedButton(
-                    onClick = onOpenPickerBase,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp).padding(end = 4.dp))
-                    Text("Select Product", style = MaterialTheme.typography.labelSmall)
-                }
-            }
+    BaseProductSellingCard(
+        base = uiState.supplierBaseProduct,
+        onSelectFromHistory = onOpenPickerBase,
+        onUpdate = { modifier -> viewModel.updateSupplierBase(modifier) }
+    )
 
-            OutlinedTextField(
-                value = uiState.supplierBaseProduct.productName,
-                onValueChange = { name -> viewModel.updateSupplierBase { it.copy(productName = name) } },
-                label = { Text("Product Name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = uiState.supplierBaseProduct.sellingPriceText,
-                    onValueChange = { price -> viewModel.updateSupplierBase { it.copy(sellingPriceText = price) } },
-                    label = { Text("Selling Price / MRP (₹)") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = uiState.supplierBaseProduct.unitsPerPackText,
-                    onValueChange = { units -> viewModel.updateSupplierBase { it.copy(unitsPerPackText = units) } },
-                    label = { Text("Units / Pack") },
-                    modifier = Modifier.weight(0.8f),
-                    singleLine = true
-                )
-            }
-        }
-    }
-
-    // 3. Supplier Offer A
     SupplierOfferCard(
         label = "Supplier Offer A",
         offer = uiState.supplierSideA,
+        base = uiState.supplierBaseProduct,
+        onSelectFromHistory = onOpenPickerOfferA,
         onUpdate = { modifier -> viewModel.updateSupplierA(modifier) },
-        onSaveAsProduct = { viewModel.saveSupplierOfferAsProduct(isSupplierA = true) },
         onLoadInCalculator = { onLoadIntoCalculator(uiState.supplierSideA.toCalculationInput(uiState.supplierBaseProduct)) }
     )
 
-    // 4. Supplier Offer B
     SupplierOfferCard(
         label = "Supplier Offer B",
         offer = uiState.supplierSideB,
+        base = uiState.supplierBaseProduct,
+        onSelectFromHistory = onOpenPickerOfferB,
         onUpdate = { modifier -> viewModel.updateSupplierB(modifier) },
-        onSaveAsProduct = { viewModel.saveSupplierOfferAsProduct(isSupplierA = false) },
         onLoadInCalculator = { onLoadIntoCalculator(uiState.supplierSideB.toCalculationInput(uiState.supplierBaseProduct)) }
     )
 }
 
 @Composable
+fun ValidationBanner(message: String) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+@Composable
 fun ComparisonResultCard(
     outcome: ProductComparisonOutcome,
     titleA: String,
-    titleB: String,
-    subtitleA: String,
-    subtitleB: String
+    titleB: String
 ) {
     val hl = outcome.highlight ?: return
     val resA = outcome.resultA
@@ -320,43 +307,52 @@ fun ComparisonResultCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Side-by-Side Comparison",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(end = 6.dp)
+                    )
+                    Text(
+                        text = "Side-by-Side Comparison",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surface
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                 ) {
                     Text(
-                        text = "Basis: Unit Economics",
+                        text = "Normalized Unit Basis",
                         style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Highlights Row: Lowest Cost, Highest Profit/Unit, Highest Margin
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                HighlightBadge(
+                WinnerBadge(
+                    icon = Icons.Default.Savings,
                     label = "Lowest Cost",
                     winner = when (hl.lowestCostSide) {
                         WinnerSide.SIDE_A -> titleA
@@ -366,8 +362,9 @@ fun ComparisonResultCard(
                     },
                     modifier = Modifier.weight(1f)
                 )
-                HighlightBadge(
-                    label = "Highest Profit/Unit",
+                WinnerBadge(
+                    icon = Icons.Default.CheckCircle,
+                    label = "Highest Profit",
                     winner = when (hl.highestProfitPerUnitSide) {
                         WinnerSide.SIDE_A -> titleA
                         WinnerSide.SIDE_B -> titleB
@@ -376,7 +373,8 @@ fun ComparisonResultCard(
                     },
                     modifier = Modifier.weight(1f)
                 )
-                HighlightBadge(
+                WinnerBadge(
+                    icon = Icons.Default.Percent,
                     label = "Highest Margin",
                     winner = when (hl.highestMarginSide) {
                         WinnerSide.SIDE_A -> titleA
@@ -388,35 +386,83 @@ fun ComparisonResultCard(
                 )
             }
 
-            // Savings banner if one side is cheaper
-            if (hl.costSavingsPercent != null && hl.costSavingsPercent.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            if (hl.costSavingsPercent != null && hl.costSavingsPercent.compareTo(BigDecimal.ZERO) > 0) {
                 val cheaperName = if (hl.lowestCostSide == WinnerSide.SIDE_A) titleA else titleB
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Potential Savings: $cheaperName saves ₹${hl.costDifferencePerUnit.toPlainString()}/unit (${hl.costSavingsPercent.toPlainString()}%)",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Savings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp).padding(end = 4.dp)
+                        )
+                        Text(
+                            text = "$cheaperName saves \u20b9${hl.costDifferencePerUnit.toPlainString()}/unit (${hl.costSavingsPercent.toPlainString()}%)",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // Comparison Metrics Grid
-            ComparisonRow(label = "Item", valA = titleA, valB = titleB, isHeader = true)
-            ComparisonRow(label = "Cost / Unit", valA = "₹${resA.roundedCostPerIndividualUnit}", valB = "₹${resB.roundedCostPerIndividualUnit}")
-            ComparisonRow(label = "Cost / Pack", valA = "₹${resA.roundedEffectiveCostPerReceivedPack}", valB = "₹${resB.roundedEffectiveCostPerReceivedPack}")
-            ComparisonRow(label = "Selling Price", valA = "₹${resA.roundedCustomerSellingPrice}", valB = "₹${resB.roundedCustomerSellingPrice}")
-            ComparisonRow(label = "Profit / Unit", valA = "₹${resA.roundedProfitPerIndividualUnit}", valB = "₹${resB.roundedProfitPerIndividualUnit}")
-            ComparisonRow(label = "Profit Margin %", valA = "${resA.roundedProfitMargin?.toPlainString() ?: "0.00"}%", valB = "${resB.roundedProfitMargin?.toPlainString() ?: "0.00"}%")
-            ComparisonRow(label = "Markup %", valA = "${resA.roundedMarkup?.toPlainString() ?: "0.00"}%", valB = "${resB.roundedMarkup?.toPlainString() ?: "0.00"}%")
-            ComparisonRow(label = "Purchase Tax", valA = IndianCurrencyFormatter.formatCurrency(resA.purchaseTaxAmount), valB = IndianCurrencyFormatter.formatCurrency(resB.purchaseTaxAmount))
-            ComparisonRow(
+            ComparisonMetricRow(label = "Metric", valA = titleA, valB = titleB, isHeader = true)
+            ComparisonMetricRow(
+                label = "Cost / Unit",
+                valA = "\u20b9${resA.roundedCostPerIndividualUnit}",
+                valB = "\u20b9${resB.roundedCostPerIndividualUnit}",
+                isWinnerA = hl.lowestCostSide == WinnerSide.SIDE_A,
+                isWinnerB = hl.lowestCostSide == WinnerSide.SIDE_B
+            )
+            ComparisonMetricRow(
+                label = "Cost / Pack",
+                valA = "\u20b9${resA.roundedEffectiveCostPerReceivedPack}",
+                valB = "\u20b9${resB.roundedEffectiveCostPerReceivedPack}"
+            )
+            ComparisonMetricRow(
+                label = "Selling Price (MRP)",
+                valA = "\u20b9${resA.roundedCustomerSellingPrice}",
+                valB = "\u20b9${resB.roundedCustomerSellingPrice}"
+            )
+            ComparisonMetricRow(
+                label = "Profit / Unit",
+                valA = "\u20b9${resA.roundedProfitPerIndividualUnit}",
+                valB = "\u20b9${resB.roundedProfitPerIndividualUnit}",
+                isWinnerA = hl.highestProfitPerUnitSide == WinnerSide.SIDE_A,
+                isWinnerB = hl.highestProfitPerUnitSide == WinnerSide.SIDE_B
+            )
+            ComparisonMetricRow(
+                label = "Profit Margin",
+                valA = "${resA.roundedProfitMargin?.toPlainString() ?: "0.00"}%",
+                valB = "${resB.roundedProfitMargin?.toPlainString() ?: "0.00"}%",
+                isWinnerA = hl.highestMarginSide == WinnerSide.SIDE_A,
+                isWinnerB = hl.highestMarginSide == WinnerSide.SIDE_B
+            )
+            ComparisonMetricRow(
+                label = "Markup",
+                valA = "${resA.roundedMarkup?.toPlainString() ?: "0.00"}%",
+                valB = "${resB.roundedMarkup?.toPlainString() ?: "0.00"}%"
+            )
+            ComparisonMetricRow(
+                label = "Purchase Tax",
+                valA = IndianCurrencyFormatter.formatCurrency(resA.purchaseTaxAmount),
+                valB = IndianCurrencyFormatter.formatCurrency(resB.purchaseTaxAmount)
+            )
+            ComparisonMetricRow(
+                label = "Selling Tax",
+                valA = IndianCurrencyFormatter.formatCurrency(resA.sellingTaxAmount),
+                valB = IndianCurrencyFormatter.formatCurrency(resB.sellingTaxAmount)
+            )
+            ComparisonMetricRow(
                 label = "ITC Treatment",
                 valA = if (resA.isInputTaxCreditApplied) "Credit Eligible" else "Cost Component",
                 valB = if (resB.isInputTaxCreditApplied) "Credit Eligible" else "Cost Component"
@@ -426,21 +472,29 @@ fun ComparisonResultCard(
 }
 
 @Composable
-fun HighlightBadge(
+fun WinnerBadge(
+    icon: ImageVector,
     label: String,
     winner: String,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier
     ) {
         Column(
-            modifier = Modifier.padding(6.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
@@ -449,7 +503,7 @@ fun HighlightBadge(
             Text(
                 text = winner,
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
             )
         }
@@ -457,134 +511,207 @@ fun HighlightBadge(
 }
 
 @Composable
-fun ComparisonRow(
+fun ComparisonMetricRow(
     label: String,
     valA: String,
     valB: String,
-    isHeader: Boolean = false
+    isHeader: Boolean = false,
+    isWinnerA: Boolean = false,
+    isWinnerB: Boolean = false
 ) {
+    val financeColors = FinanceTheme.colors
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
-            style = if (isHeader) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall,
+            style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1.1f)
+            modifier = Modifier.weight(1.2f)
         )
         Text(
             text = valA,
-            style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
+            style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall.copy(fontWeight = if (isWinnerA) FontWeight.Bold else FontWeight.Normal),
+            color = if (isWinnerA) financeColors.profit else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
         Text(
             text = valB,
-            style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface,
+            style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall.copy(fontWeight = if (isWinnerB) FontWeight.Bold else FontWeight.Normal),
+            color = if (isWinnerB) financeColors.profit else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
     }
 }
-
 @Composable
 fun ProductInputSideCard(
     sideLabel: String,
     state: CompareSideState,
-    onSelectFromLibrary: () -> Unit,
+    onSelectFromHistory: () -> Unit,
     onUpdate: ((CompareSideState) -> CompareSideState) -> Unit,
-    onSaveToLibrary: () -> Unit,
     onLoadInCalculator: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "$sideLabel: ${state.productName.ifBlank { "Untitled" }}",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-                OutlinedButton(
-                    onClick = onSelectFromLibrary,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp).padding(end = 4.dp))
-                    Text("Select Saved", style = MaterialTheme.typography.labelSmall)
+                Column {
+                    Text(
+                        text = sideLabel,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (state.productName.isNotBlank()) {
+                        Text(
+                            text = state.productName,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(
+                        onClick = onSelectFromHistory,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(14.dp).padding(end = 4.dp))
+                        Text("From History", style = MaterialTheme.typography.labelSmall)
+                    }
+                    OutlinedButton(
+                        onClick = onLoadInCalculator,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(14.dp).padding(end = 2.dp))
+                        Text("Use", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
 
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+            Text(text = "Identity", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(
                 value = state.productName,
-                onValueChange = { name -> onUpdate { it.copy(productName = name) } },
-                label = { Text("Product Name") },
+                onValueChange = { onUpdate { s -> s.copy(productName = it) } },
+                label = { Text("Product / Medicine Name") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-
             OutlinedTextField(
                 value = state.supplierName,
-                onValueChange = { sup -> onUpdate { it.copy(supplierName = sup) } },
-                label = { Text("Supplier Name (Optional)") },
+                onValueChange = { onUpdate { s -> s.copy(supplierName = it) } },
+                label = { Text("Supplier / Distributor Name") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
 
+            Text(text = "Purchase Pricing & Tax", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = state.ptrText,
-                    onValueChange = { ptr -> onUpdate { it.copy(ptrText = ptr) } },
-                    label = { Text("PTR (₹)") },
+                    onValueChange = { onUpdate { s -> s.copy(ptrText = it) } },
+                    label = { Text("PTR (\u20b9)") },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = state.purchaseTaxRateText,
-                    onValueChange = { tax -> onUpdate { it.copy(purchaseTaxRateText = tax) } },
-                    label = { Text("Purchase Tax %") },
+                    onValueChange = { onUpdate { s -> s.copy(purchaseTaxRateText = it) } },
+                    label = { Text("GST %") },
                     modifier = Modifier.weight(0.8f),
                     singleLine = true
                 )
             }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FilterChip(
+                    selected = state.purchasePriceMode == TaxPriceMode.TAX_EXCLUSIVE,
+                    onClick = { onUpdate { s -> s.copy(purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE) } },
+                    label = { Text("PTR + GST", style = MaterialTheme.typography.labelSmall) }
+                )
+                FilterChip(
+                    selected = state.purchasePriceMode == TaxPriceMode.TAX_INCLUSIVE,
+                    onClick = { onUpdate { s -> s.copy(purchasePriceMode = TaxPriceMode.TAX_INCLUSIVE) } },
+                    label = { Text("PTR Incl.", style = MaterialTheme.typography.labelSmall) }
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                FilterChip(
+                    selected = state.isInputTaxCreditEnabled,
+                    onClick = { onUpdate { s -> s.copy(isInputTaxCreditEnabled = !s.isInputTaxCreditEnabled) } },
+                    label = { Text(if (state.isInputTaxCreditEnabled) "ITC Claimed" else "No ITC", style = MaterialTheme.typography.labelSmall) }
+                )
+            }
+
+            Text(text = "Selling Pricing & Tax", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = state.sellingPriceText,
-                    onValueChange = { sp -> onUpdate { it.copy(sellingPriceText = sp) } },
-                    label = { Text("Selling MRP (₹)") },
+                    onValueChange = { onUpdate { s -> s.copy(sellingPriceText = it) } },
+                    label = { Text("Selling Price / MRP (\u20b9)") },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
-                    value = state.unitsPerPackText,
-                    onValueChange = { u -> onUpdate { it.copy(unitsPerPackText = u) } },
-                    label = { Text("Units / Pack") },
+                    value = state.sellingTaxRateText,
+                    onValueChange = { onUpdate { s -> s.copy(sellingTaxRateText = it) } },
+                    label = { Text("Selling GST %") },
                     modifier = Modifier.weight(0.8f),
                     singleLine = true
                 )
             }
 
-            // Supplier Discount Switch
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                FilterChip(
+                    selected = state.sellingPriceMode == TaxPriceMode.TAX_INCLUSIVE,
+                    onClick = { onUpdate { s -> s.copy(sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE) } },
+                    label = { Text("MRP (Tax Incl.)", style = MaterialTheme.typography.labelSmall) }
+                )
+                FilterChip(
+                    selected = state.sellingPriceMode == TaxPriceMode.TAX_EXCLUSIVE,
+                    onClick = { onUpdate { s -> s.copy(sellingPriceMode = TaxPriceMode.TAX_EXCLUSIVE) } },
+                    label = { Text("Rate + Tax", style = MaterialTheme.typography.labelSmall) }
+                )
+            }
+
+            Text(text = "Pack Details", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = state.unitsPerPackText,
+                onValueChange = { onUpdate { s -> s.copy(unitsPerPackText = it) } },
+                label = { Text("Units per Pack (e.g. 10 tablets/strip)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Text(text = "Discounts & Offers", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Supplier Discount", style = MaterialTheme.typography.bodySmall)
+                Text("Supplier Cash Discount", style = MaterialTheme.typography.bodySmall)
                 Switch(
                     checked = state.isSupplierDiscountEnabled,
                     onCheckedChange = { onUpdate { s -> s.copy(isSupplierDiscountEnabled = it) } }
@@ -593,14 +720,13 @@ fun ProductInputSideCard(
             if (state.isSupplierDiscountEnabled) {
                 OutlinedTextField(
                     value = state.supplierDiscountText,
-                    onValueChange = { d -> onUpdate { it.copy(supplierDiscountText = d) } },
+                    onValueChange = { onUpdate { s -> s.copy(supplierDiscountText = it) } },
                     label = { Text("Discount %") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
             }
 
-            // Free Goods Offer Switch
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -616,43 +742,115 @@ fun ProductInputSideCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = state.offerBuyQuantityText,
-                        onValueChange = { b -> onUpdate { it.copy(offerBuyQuantityText = b) } },
+                        onValueChange = { onUpdate { s -> s.copy(offerBuyQuantityText = it) } },
                         label = { Text("Buy Qty") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = state.offerFreeQuantityText,
-                        onValueChange = { f -> onUpdate { it.copy(offerFreeQuantityText = f) } },
+                        onValueChange = { onUpdate { s -> s.copy(offerFreeQuantityText = it) } },
                         label = { Text("Free Qty") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                 }
             }
-
-            // Actions: Save to Library, Load in Calculator
+        }
+    }
+}
+@Composable
+fun BaseProductSellingCard(
+    base: SupplierComparisonBaseProduct,
+    onSelectFromHistory: () -> Unit,
+    onUpdate: ((SupplierComparisonBaseProduct) -> SupplierComparisonBaseProduct) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Button(
-                    onClick = onSaveToLibrary,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.BookmarkBorder, contentDescription = null, modifier = Modifier.size(16.dp).padding(end = 4.dp))
-                    Text("Save to Library", style = MaterialTheme.typography.labelSmall)
+                Column {
+                    Text(
+                        text = "Base Product Selling Parameters",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Applied across compared supplier offers",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-
                 OutlinedButton(
-                    onClick = onLoadInCalculator,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
+                    onClick = onSelectFromHistory,
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(16.dp).padding(end = 4.dp))
-                    Text("Use in Calculator", style = MaterialTheme.typography.labelSmall)
+                    Icon(imageVector = Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(14.dp).padding(end = 4.dp))
+                    Text("From History", style = MaterialTheme.typography.labelSmall)
                 }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+            OutlinedTextField(
+                value = base.productName,
+                onValueChange = { onUpdate { b -> b.copy(productName = it) } },
+                label = { Text("Product / Item Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = base.sellingPriceText,
+                    onValueChange = { onUpdate { b -> b.copy(sellingPriceText = it) } },
+                    label = { Text("Selling Price / MRP (\u20b9)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = base.sellingTaxRateText,
+                    onValueChange = { onUpdate { b -> b.copy(sellingTaxRateText = it) } },
+                    label = { Text("Selling GST %") },
+                    modifier = Modifier.weight(0.8f),
+                    singleLine = true
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                FilterChip(
+                    selected = base.sellingPriceMode == TaxPriceMode.TAX_INCLUSIVE,
+                    onClick = { onUpdate { b -> b.copy(sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE) } },
+                    label = { Text("MRP (Tax Incl.)", style = MaterialTheme.typography.labelSmall) }
+                )
+                FilterChip(
+                    selected = base.sellingPriceMode == TaxPriceMode.TAX_EXCLUSIVE,
+                    onClick = { onUpdate { b -> b.copy(sellingPriceMode = TaxPriceMode.TAX_EXCLUSIVE) } },
+                    label = { Text("Rate + Tax", style = MaterialTheme.typography.labelSmall) }
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                OutlinedTextField(
+                    value = base.unitsPerPackText,
+                    onValueChange = { onUpdate { b -> b.copy(unitsPerPackText = it) } },
+                    label = { Text("Units/Pack") },
+                    modifier = Modifier.width(110.dp),
+                    singleLine = true
+                )
             }
         }
     }
@@ -662,30 +860,64 @@ fun ProductInputSideCard(
 fun SupplierOfferCard(
     label: String,
     offer: SupplierOfferSide,
+    base: SupplierComparisonBaseProduct,
+    onSelectFromHistory: () -> Unit = {},
     onUpdate: ((SupplierOfferSide) -> SupplierOfferSide) -> Unit,
-    onSaveAsProduct: () -> Unit,
     onLoadInCalculator: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (offer.supplierName.isNotBlank()) {
+                        Text(
+                            text = offer.supplierName,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(
+                        onClick = onSelectFromHistory,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(14.dp).padding(end = 2.dp))
+                        Text("From History", style = MaterialTheme.typography.labelSmall)
+                    }
+                    OutlinedButton(
+                        onClick = onLoadInCalculator,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(14.dp).padding(end = 2.dp))
+                        Text("Use in Calc", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
             OutlinedTextField(
                 value = offer.supplierName,
-                onValueChange = { name -> onUpdate { it.copy(supplierName = name) } },
+                onValueChange = { onUpdate { s -> s.copy(supplierName = it) } },
                 label = { Text("Supplier Name") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -694,27 +926,84 @@ fun SupplierOfferCard(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = offer.ptrText,
-                    onValueChange = { ptr -> onUpdate { it.copy(ptrText = ptr) } },
-                    label = { Text("PTR (₹)") },
+                    onValueChange = { onUpdate { s -> s.copy(ptrText = it) } },
+                    label = { Text("PTR (\u20b9)") },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = offer.purchaseTaxRateText,
-                    onValueChange = { tax -> onUpdate { it.copy(purchaseTaxRateText = tax) } },
+                    onValueChange = { onUpdate { s -> s.copy(purchaseTaxRateText = it) } },
                     label = { Text("Purchase Tax %") },
                     modifier = Modifier.weight(0.8f),
                     singleLine = true
                 )
             }
 
-            // Discount Toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FilterChip(
+                    selected = offer.purchasePriceMode == TaxPriceMode.TAX_EXCLUSIVE,
+                    onClick = { onUpdate { s -> s.copy(purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE) } },
+                    label = { Text("PTR + Tax", style = MaterialTheme.typography.labelSmall) }
+                )
+                FilterChip(
+                    selected = offer.purchasePriceMode == TaxPriceMode.TAX_INCLUSIVE,
+                    onClick = { onUpdate { s -> s.copy(purchasePriceMode = TaxPriceMode.TAX_INCLUSIVE) } },
+                    label = { Text("PTR Incl.", style = MaterialTheme.typography.labelSmall) }
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                FilterChip(
+                    selected = offer.isInputTaxCreditEnabled,
+                    onClick = { onUpdate { s -> s.copy(isInputTaxCreditEnabled = !s.isInputTaxCreditEnabled) } },
+                    label = { Text(if (offer.isInputTaxCreditEnabled) "ITC Claimed" else "No ITC", style = MaterialTheme.typography.labelSmall) }
+                )
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Supplier Discount", style = MaterialTheme.typography.bodySmall)
+                Text("Customize Selling Tax for this Offer", style = MaterialTheme.typography.bodySmall)
+                Switch(
+                    checked = offer.overrideSellingTax,
+                    onCheckedChange = { onUpdate { s -> s.copy(overrideSellingTax = it) } }
+                )
+            }
+            if (offer.overrideSellingTax) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = offer.sellingTaxRateText,
+                        onValueChange = { onUpdate { s -> s.copy(sellingTaxRateText = it) } },
+                        label = { Text("Selling GST %") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        FilterChip(
+                            selected = offer.sellingPriceMode == TaxPriceMode.TAX_INCLUSIVE,
+                            onClick = { onUpdate { s -> s.copy(sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE) } },
+                            label = { Text("Incl.", style = MaterialTheme.typography.labelSmall) }
+                        )
+                        FilterChip(
+                            selected = offer.sellingPriceMode == TaxPriceMode.TAX_EXCLUSIVE,
+                            onClick = { onUpdate { s -> s.copy(sellingPriceMode = TaxPriceMode.TAX_EXCLUSIVE) } },
+                            label = { Text("Excl.", style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Supplier Cash Discount", style = MaterialTheme.typography.bodySmall)
                 Switch(
                     checked = offer.isSupplierDiscountEnabled,
                     onCheckedChange = { onUpdate { s -> s.copy(isSupplierDiscountEnabled = it) } }
@@ -723,14 +1012,13 @@ fun SupplierOfferCard(
             if (offer.isSupplierDiscountEnabled) {
                 OutlinedTextField(
                     value = offer.supplierDiscountText,
-                    onValueChange = { d -> onUpdate { it.copy(supplierDiscountText = d) } },
+                    onValueChange = { onUpdate { s -> s.copy(supplierDiscountText = it) } },
                     label = { Text("Discount %") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
             }
 
-            // Free Goods Offer Toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -746,42 +1034,18 @@ fun SupplierOfferCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = offer.offerBuyQuantityText,
-                        onValueChange = { b -> onUpdate { it.copy(offerBuyQuantityText = b) } },
+                        onValueChange = { onUpdate { s -> s.copy(offerBuyQuantityText = it) } },
                         label = { Text("Buy Qty") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = offer.offerFreeQuantityText,
-                        onValueChange = { f -> onUpdate { it.copy(offerFreeQuantityText = f) } },
+                        onValueChange = { onUpdate { s -> s.copy(offerFreeQuantityText = it) } },
                         label = { Text("Free Qty") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
-                }
-            }
-
-            // Actions: Save as Product, Load in Calculator
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = onSaveAsProduct,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.BookmarkBorder, contentDescription = null, modifier = Modifier.size(16.dp).padding(end = 4.dp))
-                    Text("Save as Product", style = MaterialTheme.typography.labelSmall)
-                }
-
-                OutlinedButton(
-                    onClick = onLoadInCalculator,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(16.dp).padding(end = 4.dp))
-                    Text("Use in Calculator", style = MaterialTheme.typography.labelSmall)
                 }
             }
         }

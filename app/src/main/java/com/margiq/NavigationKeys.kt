@@ -1,13 +1,10 @@
-package com.margiq
+﻿package com.margiq
 
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 @Serializable
 data object CalculatorDestination : NavKey
-
-@Serializable
-data object ProductLibraryDestination : NavKey
 
 @Serializable
 data object CompareDestination : NavKey

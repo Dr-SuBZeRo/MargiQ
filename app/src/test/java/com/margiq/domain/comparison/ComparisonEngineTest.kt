@@ -148,4 +148,114 @@ class ComparisonEngineTest {
         assertFalse(outcome.isValid)
         assertTrue(outcome.validationMessage?.contains("cannot be negative") == true)
     }
+
+    @Test
+    fun testDifferingSellingTaxRatesComparison() {
+        // Product A: PTR 50, Selling MRP 100 with 5% GST -> Net selling = 95.24, Profit = 45.24
+        val inputA = CalculationInput(
+            productName = "Product A",
+            ptr = BigDecimal("50.00"),
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = BigDecimal("100.00"),
+            sellingTaxRate = BigDecimal("5.00"),
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            unitsPerPack = 1
+        )
+
+        // Product B: PTR 50, Selling MRP 100 with 18% GST -> Net selling = 84.75, Profit = 34.75
+        val inputB = CalculationInput(
+            productName = "Product B",
+            ptr = BigDecimal("50.00"),
+            purchaseTaxRate = BigDecimal("5.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = BigDecimal("100.00"),
+            sellingTaxRate = BigDecimal("18.00"),
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            unitsPerPack = 1
+        )
+
+        val outcome = ComparisonEngine.compare(inputA, inputB)
+        assertTrue(outcome.isValid)
+        val hl = outcome.highlight!!
+
+        // Costs are equal
+        assertEquals(WinnerSide.TIE, hl.lowestCostSide)
+        // Product A yields higher profit and margin because lower tax slab leaves more net revenue
+        assertEquals(WinnerSide.SIDE_A, hl.highestProfitPerUnitSide)
+        assertEquals(WinnerSide.SIDE_A, hl.highestMarginSide)
+    }
+
+    @Test
+    fun testTaxInclusiveVsExclusiveSellingPriceComparison() {
+        // Product A: Selling price 100 TAX_EXCLUSIVE (+5% tax = customer pays 105, net revenue 100)
+        val inputA = CalculationInput(
+            productName = "Product A",
+            ptr = BigDecimal("50.00"),
+            purchaseTaxRate = BigDecimal.ZERO,
+            sellingPrice = BigDecimal("100.00"),
+            sellingTaxRate = BigDecimal("5.00"),
+            sellingPriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            unitsPerPack = 1
+        )
+
+        // Product B: Selling price 100 TAX_INCLUSIVE (customer pays 100, net revenue 95.24)
+        val inputB = CalculationInput(
+            productName = "Product B",
+            ptr = BigDecimal("50.00"),
+            purchaseTaxRate = BigDecimal.ZERO,
+            sellingPrice = BigDecimal("100.00"),
+            sellingTaxRate = BigDecimal("5.00"),
+            sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+            unitsPerPack = 1
+        )
+
+        val outcome = ComparisonEngine.compare(inputA, inputB)
+        assertTrue(outcome.isValid)
+        val hl = outcome.highlight!!
+
+        assertEquals(WinnerSide.SIDE_A, hl.highestProfitPerUnitSide)
+        assertEquals(WinnerSide.SIDE_A, hl.highestMarginSide)
+    }
+
+    @Test
+    fun testPurchaseItcEligibilityComparison() {
+        // Product A: 12% GST with ITC Claimed (economic cost = 100)
+        val inputA = CalculationInput(
+            productName = "Product A",
+            ptr = BigDecimal("100.00"),
+            purchaseTaxRate = BigDecimal("12.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+            isInputTaxCreditEnabled = true,
+            sellingPrice = BigDecimal("150.00"),
+            sellingTaxRate = BigDecimal.ZERO,
+            unitsPerPack = 1
+        )
+
+        // Product B: 12% GST with Non-recoverable tax (economic cost = 112)
+        val inputB = CalculationInput(
+            productName = "Product B",
+            ptr = BigDecimal("100.00"),
+            purchaseTaxRate = BigDecimal("12.00"),
+            purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+            purchaseTaxClassification = PurchaseTaxClassification.NON_RECOVERABLE,
+            isInputTaxCreditEnabled = false,
+            sellingPrice = BigDecimal("150.00"),
+            sellingTaxRate = BigDecimal.ZERO,
+            unitsPerPack = 1
+        )
+
+        val outcome = ComparisonEngine.compare(inputA, inputB)
+        assertTrue(outcome.isValid)
+        val hl = outcome.highlight!!
+
+        // Product A has lower economic cost because ITC is credited
+        assertEquals(WinnerSide.SIDE_A, hl.lowestCostSide)
+        assertEquals(WinnerSide.SIDE_A, hl.highestProfitPerUnitSide)
+    }
 }
