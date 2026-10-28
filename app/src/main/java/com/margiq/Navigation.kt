@@ -1,4 +1,4 @@
-﻿package com.margiq
+package com.margiq
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -52,6 +52,8 @@ import com.margiq.ui.history.HistoryScreen
 import com.margiq.ui.history.HistoryViewModel
 import com.margiq.ui.settings.SettingsScreen
 import com.margiq.ui.settings.SettingsViewModel
+import com.margiq.util.AppVersionHelper
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 
 @Composable
@@ -61,6 +63,8 @@ fun MainNavigation(
     settingsViewModel: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
     compareViewModel: CompareViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    val context = LocalContext.current
+    val versionInfo = remember { AppVersionHelper.getAppVersionInfo(context) }
     val backStack = rememberNavBackStack(CalculatorDestination)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -95,7 +99,7 @@ fun MainNavigation(
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = "v2.1.1",
+                                text = versionInfo.displayVersion,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )

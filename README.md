@@ -13,7 +13,7 @@
   <p align="center">
     <a href="https://github.com/Dr-SuBZeRo/MargiQ"><img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github" alt="Repository" /></a>
     <a href="https://github.com/Dr-SuBZeRo/MargiQ/actions"><img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI" /></a>
-    <a href="https://github.com/Dr-SuBZeRo/MargiQ/releases/latest"><img src="https://img.shields.io/badge/Release-v2.1.2-00897B?style=for-the-badge&logo=android" alt="Latest Release" /></a>
+    <a href="https://github.com/Dr-SuBZeRo/MargiQ/releases/latest"><img src="https://img.shields.io/badge/Release-v2.1.3-00897B?style=for-the-badge&logo=android" alt="Latest Release" /></a>
     <a href="https://github.com/Dr-SuBZeRo/MargiQ/issues"><img src="https://img.shields.io/badge/Issues-Report%20a%20bug-red?style=for-the-badge&logo=github" alt="Report a bug" /></a>
   </p>
 
@@ -35,7 +35,7 @@
 
 **MargiQ** cuts through complex wholesale pricing, supplier promotion mechanics, and multi-tier Goods and Services Tax (GST) rules in India. Designed specifically for retail pharmacies, stockists, distributors, and merchandise buyers, MargiQ provides real-time economic cost and unit profitability analysis rather than standard POS ledgering.
 
-In **v2.1.2**, MargiQ introduces an upgraded side-by-side **Comparison Suite** with independent selling tax calculation, three real-time commercial winner indicators, a persistent **Product Library**, a streamlined **Material 3 Navigation Drawer**, and an **immutable Calculation History integration** that lets you pull saved figures directly into the calculator or compare models without altering historical data.
+In **v2.1.3**, MargiQ unifies version reporting across the entire app via runtime package metadata, introduces an in-app manual **GitHub Update Checker** with semantic version evaluation and direct APK download support, refines the **Privacy Statement** to account for on-demand network requests, and maintains an upgraded side-by-side **Comparison Suite** with real-time commercial winner indicators and immutable Calculation History integration.
 
 Whether evaluating **Input Tax Credit (ITC)** eligibility, trade discounts, promotional bonus schemes (*Buy X, Get Y Free*), or contrasting deals between rival wholesalers, MargiQ delivers uncompromised monetary accuracy with zero internet dependencies.
 
@@ -415,6 +415,6 @@ BUILD SUCCESSFUL
   <a href="https://github.com/Dr-SuBZeRo/MargiQ"><img src="https://img.shields.io/badge/Project-MargiQ-00897B?style=flat-square" alt="MargiQ" /></a>
   
   <br /><br />
-  <p><sub>Application ID: <code>com.margiq</code> | Current Release: <code>v2.1.2</code> (versionCode <code>10</code>)</sub></p>
+  <p><sub>Application ID: <code>com.margiq</code> | Current Release: <code>v2.1.3</code> (versionCode <code>11</code>)</sub></p>
   <p><b>MargiQ</b> &bull; <i>Know your cost. Own your margin.</i></p>
 </div>

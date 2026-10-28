@@ -24,17 +24,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -57,6 +65,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +75,8 @@ import com.margiq.domain.model.PurchaseTaxClassification
 import com.margiq.domain.model.TaxPriceMode
 import com.margiq.ui.components.CleanNumberInputField
 import com.margiq.ui.components.SegmentedTaxModeSelector
+import com.margiq.util.AppVersionHelper
+import com.margiq.util.UrlLauncher
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +86,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val versionInfo = remember { AppVersionHelper.getAppVersionInfo(context) }
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -243,20 +256,338 @@ fun SettingsScreen(
                 }
             }
 
-            // 3. PRIVACY & RELIABILITY
+            // 3. GITHUB & UPDATES
+            SettingsSectionCard(title = "GitHub & Updates", icon = Icons.Default.Code) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Dr-SuBZeRo/MargiQ",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Source code, releases and project updates",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Installed Version: ${versionInfo.displayVersion} (Build ${versionInfo.versionCode})",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { UrlLauncher.openUrl(context, UrlLauncher.GITHUB_REPO_URL) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp).padding(end = 4.dp)
+                            )
+                            Text("Open GitHub", maxLines = 1)
+                        }
+
+                        Button(
+                            onClick = { viewModel.checkForUpdates(versionInfo.versionName) },
+                            modifier = Modifier.weight(1f),
+                            enabled = uiState.updateCheckState !is UpdateCheckState.Checking,
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            if (uiState.updateCheckState is UpdateCheckState.Checking) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Checking...", maxLines = 1)
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp).padding(end = 4.dp)
+                                )
+                                Text("Check Updates", maxLines = 1)
+                            }
+                        }
+                    }
+
+                    when (val updateState = uiState.updateCheckState) {
+                        is UpdateCheckState.Idle -> {
+                            Text(
+                                text = "Tap 'Check Updates' to manually verify whether a new version has been published on GitHub.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        is UpdateCheckState.Checking -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Connecting to GitHub Releases API...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        is UpdateCheckState.UpToDate -> {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "You're using the latest version",
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "v${updateState.currentVersion} is up to date.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    TextButton(
+                                        onClick = { UrlLauncher.openUrl(context, updateState.releasePageUrl) }
+                                    ) {
+                                        Text("Releases", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                        is UpdateCheckState.UpdateAvailable -> {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                                ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Update Available: v${updateState.latestVersion}",
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    if (updateState.releaseName.isNotBlank() && updateState.releaseName != updateState.latestVersion) {
+                                        Text(
+                                            text = updateState.releaseName,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+
+                                    if (updateState.releaseNotes.isNotBlank()) {
+                                        Text(
+                                            text = updateState.releaseNotes.lines().take(5).joinToString("\n").trim(),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 5
+                                        )
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = { UrlLauncher.openUrl(context, updateState.releasePageUrl) },
+                                            modifier = Modifier.weight(1f),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text("View Release", fontSize = 12.sp)
+                                        }
+
+                                        if (updateState.apkAsset != null) {
+                                            Button(
+                                                onClick = {
+                                                    UrlLauncher.openUrl(context, updateState.apkAsset.browserDownloadUrl)
+                                                },
+                                                modifier = Modifier.weight(1f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Download,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(14.dp).padding(end = 4.dp)
+                                                )
+                                                Text("Download APK", fontSize = 12.sp, maxLines = 1)
+                                            }
+                                        }
+                                    }
+
+                                    if (updateState.apkAsset == null && !updateState.isAmbiguousApk) {
+                                        Text(
+                                            text = "No direct APK asset attached. Please check the release page.",
+                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    } else if (updateState.isAmbiguousApk) {
+                                        Text(
+                                            text = "Multiple APK builds found. Tap 'View Release' to select the build for your device.",
+                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    Text(
+                                        text = "Note: Opening the download URL opens your browser. Android may ask you to allow downloads and installation from your browser or file manager.",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                        }
+                        is UpdateCheckState.UncertainVersion -> {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "Release on GitHub: ${updateState.rawTag}",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "The latest release tag could not be verified automatically. View the release on GitHub to inspect version details.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    TextButton(
+                                        onClick = { UrlLauncher.openUrl(context, updateState.releasePageUrl) },
+                                        modifier = Modifier.align(Alignment.End)
+                                    ) {
+                                        Text("View Release on GitHub")
+                                    }
+                                }
+                            }
+                        }
+                        is UpdateCheckState.Error -> {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = if (updateState.isOffline) "Offline" else "Check Failed",
+                                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                    }
+                                    Text(
+                                        text = updateState.message,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End
+                                    ) {
+                                        TextButton(
+                                            onClick = { UrlLauncher.openUrl(context, UrlLauncher.GITHUB_REPO_URL) }
+                                        ) {
+                                            Text("Open GitHub")
+                                        }
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        TextButton(
+                                            onClick = { viewModel.checkForUpdates(versionInfo.versionName) }
+                                        ) {
+                                            Text("Retry")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. PRIVACY & LOCAL STORAGE
             SettingsSectionCard(title = "Privacy & Local Storage", icon = Icons.Default.Lock) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "• 100% Offline: This app operates entirely on your device and requires no internet permission.\n" +
-                                "• No User Tracking: No analytics, tracking IDs, accounts, or telemetry.\n" +
-                                "• Private Room Database: Your calculation history is securely stored on internal storage and never transmitted.",
+                        text = "• Local Calculation & History: All your calculator inputs, comparison figures, and saved calculations remain stored safely on your device in a private SQLite/Room database.\n" +
+                                "• Zero Tracking & Analytics: MargiQ contains no analytics, user tracking IDs, advertising identifiers, accounts, or background telemetry.\n" +
+                                "• On-Demand Network Access: Internet access is used strictly on demand when you manually tap 'Check Updates' or open project links. MargiQ never runs background checks, scheduled sync jobs, or automatic network polling.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // 4. ABOUT APP
+            // 5. ABOUT APP
             SettingsSectionCard(title = "About MargiQ", icon = Icons.Default.Info) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
@@ -269,7 +600,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Version ${com.margiq.BuildConfig.VERSION_NAME} (Native Android with Jetpack Compose)",
+                        text = "Version ${versionInfo.versionName} (Native Android with Jetpack Compose)",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -287,7 +618,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 5. CREATOR & VERSION FOOTER
+            // 6. CREATOR & VERSION FOOTER
             HorizontalDivider(
                 modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
@@ -323,7 +654,7 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Version ${com.margiq.BuildConfig.VERSION_NAME}",
+                    text = "Version ${versionInfo.versionName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

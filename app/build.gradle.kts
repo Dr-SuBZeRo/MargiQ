@@ -14,8 +14,8 @@ android {
         applicationId = "com.margiq"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "2.1.2"
+        versionCode = 11
+        versionName = "2.1.3"
     }
 
     val keystorePropertiesFile = listOf(
@@ -153,6 +153,7 @@ dependencies {
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
   testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
+  testImplementation("org.json:json:20240303")
 
   // Instrumented tests: jUnit rules and runners
   androidTestImplementation(libs.androidx.test.core)
