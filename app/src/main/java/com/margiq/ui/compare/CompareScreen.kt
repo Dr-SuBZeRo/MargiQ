@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -54,7 +55,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -66,8 +69,11 @@ import com.margiq.domain.comparison.ProductComparisonOutcome
 import com.margiq.domain.comparison.WinnerSide
 import com.margiq.domain.model.CalculationInput
 import com.margiq.domain.model.TaxPriceMode
+import com.margiq.domain.sharing.ShareReport
+import com.margiq.domain.sharing.ShareReportFactory
 import com.margiq.domain.util.IndianCurrencyFormatter
 import com.margiq.theme.FinanceTheme
+import com.margiq.ui.sharing.ShareFormatDialog
 import java.math.BigDecimal
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +91,7 @@ fun CompareScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var shareReportToOpen by remember { mutableStateOf<ShareReport?>(null) }
 
     LaunchedEffect(uiState.userMessage) {
         uiState.userMessage?.let { msg ->
@@ -114,6 +121,45 @@ fun CompareScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    val canShare = if (uiState.activeTab == CompareTab.PRODUCTS) {
+                        uiState.productsComparison?.isValid == true
+                    } else {
+                        uiState.suppliersComparison?.isValid == true
+                    }
+                    IconButton(
+                        onClick = {
+                            if (uiState.activeTab == CompareTab.PRODUCTS) {
+                                uiState.productsComparison?.let { outcome ->
+                                    if (outcome.isValid) {
+                                        shareReportToOpen = ShareReportFactory.fromProductComparison(
+                                            outcome,
+                                            uiState.productSideA,
+                                            uiState.productSideB
+                                        )
+                                    }
+                                }
+                            } else {
+                                uiState.suppliersComparison?.let { outcome ->
+                                    if (outcome.isValid) {
+                                        shareReportToOpen = ShareReportFactory.fromSupplierComparison(
+                                            outcome,
+                                            uiState.supplierBaseProduct,
+                                            uiState.supplierSideA,
+                                            uiState.supplierSideB
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        enabled = canShare
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share Comparison"
                         )
                     }
                 },
@@ -166,7 +212,18 @@ fun CompareScreen(
                         viewModel = viewModel,
                         onOpenPickerA = onSelectHistoryForSideA,
                         onOpenPickerB = onSelectHistoryForSideB,
-                        onLoadIntoCalculator = onLoadIntoCalculator
+                        onLoadIntoCalculator = onLoadIntoCalculator,
+                        onShare = {
+                            uiState.productsComparison?.let { outcome ->
+                                if (outcome.isValid) {
+                                    shareReportToOpen = ShareReportFactory.fromProductComparison(
+                                        outcome,
+                                        uiState.productSideA,
+                                        uiState.productSideB
+                                    )
+                                }
+                            }
+                        }
                     )
                 } else {
                     CompareSuppliersContent(
@@ -175,11 +232,30 @@ fun CompareScreen(
                         onOpenPickerBase = onSelectHistoryForSupplierBase,
                         onOpenPickerOfferA = onSelectHistoryForSupplierOfferA,
                         onOpenPickerOfferB = onSelectHistoryForSupplierOfferB,
-                        onLoadIntoCalculator = onLoadIntoCalculator
+                        onLoadIntoCalculator = onLoadIntoCalculator,
+                        onShare = {
+                            uiState.suppliersComparison?.let { outcome ->
+                                if (outcome.isValid) {
+                                    shareReportToOpen = ShareReportFactory.fromSupplierComparison(
+                                        outcome,
+                                        uiState.supplierBaseProduct,
+                                        uiState.supplierSideA,
+                                        uiState.supplierSideB
+                                    )
+                                }
+                            }
+                        }
                     )
                 }
             }
         }
+    }
+
+    shareReportToOpen?.let { report ->
+        ShareFormatDialog(
+            report = report,
+            onDismissRequest = { shareReportToOpen = null }
+        )
     }
 }
 @Composable
@@ -188,7 +264,8 @@ fun CompareProductsContent(
     viewModel: CompareViewModel,
     onOpenPickerA: () -> Unit,
     onOpenPickerB: () -> Unit,
-    onLoadIntoCalculator: (CalculationInput) -> Unit
+    onLoadIntoCalculator: (CalculationInput) -> Unit,
+    onShare: (() -> Unit)? = null
 ) {
     val outcome = uiState.productsComparison
     if (outcome != null) {
@@ -196,7 +273,8 @@ fun CompareProductsContent(
             ComparisonResultCard(
                 outcome = outcome,
                 titleA = uiState.productSideA.productName.ifBlank { "Option A" },
-                titleB = uiState.productSideB.productName.ifBlank { "Option B" }
+                titleB = uiState.productSideB.productName.ifBlank { "Option B" },
+                onShare = onShare
             )
         } else if (!outcome.isValid && outcome.validationMessage != null) {
             ValidationBanner(message = outcome.validationMessage)
@@ -227,7 +305,8 @@ fun CompareSuppliersContent(
     onOpenPickerBase: () -> Unit,
     onOpenPickerOfferA: () -> Unit = {},
     onOpenPickerOfferB: () -> Unit = {},
-    onLoadIntoCalculator: (CalculationInput) -> Unit
+    onLoadIntoCalculator: (CalculationInput) -> Unit,
+    onShare: (() -> Unit)? = null
 ) {
     val outcome = uiState.suppliersComparison
     if (outcome != null) {
@@ -235,7 +314,8 @@ fun CompareSuppliersContent(
             ComparisonResultCard(
                 outcome = outcome,
                 titleA = uiState.supplierSideA.supplierName.ifBlank { "Supplier A" },
-                titleB = uiState.supplierSideB.supplierName.ifBlank { "Supplier B" }
+                titleB = uiState.supplierSideB.supplierName.ifBlank { "Supplier B" },
+                onShare = onShare
             )
         } else if (!outcome.isValid && outcome.validationMessage != null) {
             ValidationBanner(message = outcome.validationMessage)
@@ -297,7 +377,8 @@ fun ValidationBanner(message: String) {
 fun ComparisonResultCard(
     outcome: ProductComparisonOutcome,
     titleA: String,
-    titleB: String
+    titleB: String,
+    onShare: (() -> Unit)? = null
 ) {
     val hl = outcome.highlight ?: return
     val resA = outcome.resultA
@@ -334,16 +415,32 @@ fun ComparisonResultCard(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                ) {
-                    Text(
-                        text = "Normalized Unit Basis",
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                    ) {
+                        Text(
+                            text = "Normalized Unit Basis",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (onShare != null) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        IconButton(
+                            onClick = onShare,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
             }
 

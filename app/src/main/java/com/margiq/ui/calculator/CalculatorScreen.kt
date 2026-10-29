@@ -61,7 +61,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -74,8 +76,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.margiq.domain.model.PurchaseTaxClassification
+import com.margiq.domain.sharing.ShareReportFactory
+import com.margiq.ui.sharing.ShareFormatDialog
 import com.margiq.ui.components.CleanNumberInputField
 import com.margiq.ui.components.FinancialBreakdownCard
+import com.margiq.ui.components.MargiQBrandWordmark
 import com.margiq.ui.components.MetricHeroCard
 import com.margiq.ui.components.SegmentedTaxModeSelector
 import com.margiq.ui.components.SimpleCashComparisonCard
@@ -97,6 +102,7 @@ fun CalculatorScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    var showShareDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.userMessage) {
         uiState.userMessage?.let { message ->
@@ -128,8 +134,7 @@ fun CalculatorScreen(
                                 .clip(RoundedCornerShape(8.dp))
                         )
                         Column {
-                            Text(
-                                text = "MargiQ",
+                            MargiQBrandWordmark(
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
@@ -182,16 +187,7 @@ fun CalculatorScreen(
                 }
 
                 OutlinedButton(
-                    onClick = {
-                        val shareText = uiState.toFormattedShareText()
-                        clipboardManager.setText(AnnotatedString(shareText))
-                        viewModel.dismissUserMessage()
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            putExtra(Intent.EXTRA_TEXT, shareText)
-                            type = "text/plain"
-                        }
-                        context.startActivity(Intent.createChooser(intent, "Share Calculation"))
-                    },
+                    onClick = { showShareDialog = true },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -722,5 +718,13 @@ fun CalculatorScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    if (showShareDialog) {
+        val report = remember(uiState) { ShareReportFactory.fromCalculator(uiState) }
+        ShareFormatDialog(
+            report = report,
+            onDismissRequest = { showShareDialog = false }
+        )
     }
 }

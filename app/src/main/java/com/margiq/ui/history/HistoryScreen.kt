@@ -1,4 +1,4 @@
-﻿package com.margiq.ui.history
+package com.margiq.ui.history
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,7 +53,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -60,8 +63,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.margiq.data.local.CalculationEntity
+import com.margiq.domain.sharing.ShareReportFactory
 import com.margiq.domain.util.IndianCurrencyFormatter
 import com.margiq.theme.FinanceTheme
+import com.margiq.ui.sharing.ShareFormatDialog
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -79,6 +84,7 @@ fun HistoryScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isSelectionMode = onSelectCalculation != null
+    var itemToShare by remember { mutableStateOf<CalculationEntity?>(null) }
 
     LaunchedEffect(uiState.userMessage) {
         uiState.userMessage?.let { message ->
@@ -201,7 +207,8 @@ fun HistoryScreen(
                                 }
                             },
                             onDuplicate = { viewModel.duplicateCalculation(item) },
-                            onDelete = { viewModel.requestDelete(item) }
+                            onDelete = { viewModel.requestDelete(item) },
+                            onShare = { itemToShare = item }
                         )
                     }
                 }
@@ -256,6 +263,14 @@ fun HistoryScreen(
             }
         )
     }
+
+    itemToShare?.let { item ->
+        val report = remember(item) { ShareReportFactory.fromHistory(item) }
+        ShareFormatDialog(
+            report = report,
+            onDismissRequest = { itemToShare = null }
+        )
+    }
 }
 
 @Composable
@@ -265,6 +280,7 @@ fun HistoryItemCard(
     onClick: () -> Unit,
     onDuplicate: () -> Unit,
     onDelete: () -> Unit,
+    onShare: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val financeColors = FinanceTheme.colors
@@ -440,6 +456,20 @@ fun HistoryItemCard(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(
+                        onClick = onShare,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
                     IconButton(
                         onClick = onDuplicate,
                         modifier = Modifier.size(32.dp)

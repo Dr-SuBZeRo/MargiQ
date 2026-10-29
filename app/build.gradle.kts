@@ -14,8 +14,8 @@ android {
         applicationId = "com.margiq"
         minSdk = 26
         targetSdk = 36
-        versionCode = 11
-        versionName = "2.1.3"
+        versionCode = 12
+        versionName = "2.1.4"
     }
 
     val keystorePropertiesFile = listOf(
@@ -103,12 +103,6 @@ android {
     }
 }
 
-tasks.withType<Test>().configureEach {
-    maxParallelForks = 1
-    forkEvery = 0
-    maxHeapSize = "192m"
-    jvmArgs("-XX:+UseSerialGC")
-}
 
 kotlin {
     jvmToolchain(17)
@@ -169,12 +163,16 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     maxParallelForks = 1
-    maxHeapSize = "128m"
+    forkEvery = 0
+    minHeapSize = "32m"
+    maxHeapSize = "192m"
     jvmArgs(
         "-XX:+UseSerialGC",
         "-Xshare:off",
         "-XX:TieredStopAtLevel=1",
-        "-XX:CICompilerCount=1"
+        "-XX:CICompilerCount=1",
+        "-XX:CompressedClassSpaceSize=64m",
+        "-XX:MaxMetaspaceSize=128m"
     )
 }
 

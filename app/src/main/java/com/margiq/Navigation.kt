@@ -46,6 +46,7 @@ import com.margiq.data.local.CalculationEntity
 import com.margiq.ui.AppViewModelProvider
 import com.margiq.ui.calculator.CalculatorScreen
 import com.margiq.ui.calculator.CalculatorViewModel
+import com.margiq.ui.components.MargiQBrandWordmark
 import com.margiq.ui.compare.CompareScreen
 import com.margiq.ui.compare.CompareViewModel
 import com.margiq.ui.history.HistoryScreen
@@ -94,8 +95,7 @@ fun MainNavigation(
                         )
                         Spacer(modifier = Modifier.size(12.dp))
                         Column {
-                            Text(
-                                text = "MargiQ",
+                            MargiQBrandWordmark(
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(

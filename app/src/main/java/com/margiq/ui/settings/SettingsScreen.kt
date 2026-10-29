@@ -74,6 +74,7 @@ import com.margiq.data.preferences.ThemePreference
 import com.margiq.domain.model.PurchaseTaxClassification
 import com.margiq.domain.model.TaxPriceMode
 import com.margiq.ui.components.CleanNumberInputField
+import com.margiq.ui.components.MargiQBrandWordmark
 import com.margiq.ui.components.SegmentedTaxModeSelector
 import com.margiq.util.AppVersionHelper
 import com.margiq.util.UrlLauncher
@@ -590,8 +591,7 @@ fun SettingsScreen(
             // 5. ABOUT APP
             SettingsSectionCard(title = "About MargiQ", icon = Icons.Default.Info) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "MargiQ",
+                    MargiQBrandWordmark(
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
@@ -638,13 +638,11 @@ fun SettingsScreen(
                         .size(56.dp)
                         .clip(RoundedCornerShape(12.dp))
                 )
-                Text(
-                    text = "MargiQ",
+                MargiQBrandWordmark(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
-                    ),
-                    color = MaterialTheme.colorScheme.primary
+                    )
                 )
                 Text(
                     text = "Created by SuBZeRo",
