@@ -118,6 +118,8 @@ class RichTextShareFormatterTest {
         assertTrue("Should contain base product", formatted.contains("Dolo 650"))
         assertTrue("Should contain supplier names", formatted.contains("Alpha Pharma") && formatted.contains("Beta Distributors"))
         assertTrue("Should contain footer tagline", formatted.contains("Know your cost. Own your margin."))
+    }
+
     @Test
     fun testPromptCanonicalExampleFinancialValues() {
         // Canonically specified test values in prompt:
