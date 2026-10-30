@@ -18,7 +18,7 @@ object ShareCoordinator {
     /**
      * Shares formatted plain text via the standard Android Sharesheet.
      */
-    fun shareText(context: Context, text: String, chooserTitle: String = "Share Report") {
+    fun shareText(context: Context, text: String, chooserTitle: String = "Share MargiQ Report") {
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             putExtra(Intent.EXTRA_TEXT, text)
             type = "text/plain"
@@ -87,22 +87,30 @@ object ShareCoordinator {
     fun shareHtmlEmail(
         context: Context,
         content: EmailContent,
-        chooserTitle: String = "Send Report via Email"
+        chooserTitle: String = "Draft Email with MargiQ Report"
     ) {
         val emailIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/html"
+            type = "message/rfc822"
             putExtra(Intent.EXTRA_SUBJECT, content.subject)
-            putExtra(
-                Intent.EXTRA_TEXT,
-                HtmlCompat.fromHtml(content.htmlBody, HtmlCompat.FROM_HTML_MODE_LEGACY)
-            )
+            putExtra(Intent.EXTRA_TEXT, content.plainTextFallback)
             putExtra(Intent.EXTRA_HTML_TEXT, content.htmlBody)
         }
 
         val chooser = Intent.createChooser(emailIntent, chooserTitle).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        context.startActivity(chooser)
+        try {
+            context.startActivity(chooser)
+        } catch (_: Exception) {
+            val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, content.subject)
+                putExtra(Intent.EXTRA_TEXT, content.plainTextFallback)
+            }
+            context.startActivity(Intent.createChooser(fallbackIntent, chooserTitle).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+        }
     }
 }
 

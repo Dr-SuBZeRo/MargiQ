@@ -15,8 +15,8 @@ import androidx.compose.ui.text.withStyle
 import com.margiq.theme.FinanceTheme
 
 /**
- * Reusable brand wordmark component that displays "MagiQ":
- * - "Magi" adapts dynamically to the active light/dark theme text color.
+ * Reusable brand wordmark component that displays "MargiQ":
+ * - "Margi" adapts dynamically to the active light/dark theme text color.
  * - The terminal "Q" is highlighted in MargiQ's signature brand green.
  * - Screen readers announce the complete brand as "MargiQ" via accessibility semantics.
  */
@@ -24,12 +24,12 @@ import com.margiq.theme.FinanceTheme
 fun MargiQBrandWordmark(
     modifier: Modifier = Modifier,
     style: TextStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-    magiColor: Color = MaterialTheme.colorScheme.onSurface,
+    margiColor: Color = MaterialTheme.colorScheme.onSurface,
     qColor: Color = FinanceTheme.colors.profit
 ) {
     val annotatedString = buildAnnotatedString {
-        withStyle(SpanStyle(color = magiColor)) {
-            append("Magi")
+        withStyle(SpanStyle(color = margiColor)) {
+            append("Margi")
         }
         withStyle(SpanStyle(color = qColor)) {
             append("Q")

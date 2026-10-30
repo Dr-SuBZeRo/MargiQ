@@ -76,4 +76,21 @@ class HtmlEmailFormatterTest {
         assertTrue(email.htmlBody.contains("table"))
         assertTrue(email.plainTextFallback.contains("Product <A>"))
     }
+
+    @Test
+    fun testBrandStylingAndTableStructure() {
+        val report = ShareReportFactory.fromCalculation(sampleInput, sampleResult, 1000L)
+        val email = HtmlEmailFormatter.format(report)
+
+        assertTrue("Contains HTML table", email.htmlBody.contains("<table"))
+        assertTrue("Contains table header", email.htmlBody.contains("<th"))
+        assertTrue("Contains table cell", email.htmlBody.contains("<td"))
+        assertTrue("Contains MargiQ brand in HTML", email.htmlBody.contains("Margi<span"))
+        assertFalse("Must never contain MagiQ", email.htmlBody.contains("MagiQ"))
+        assertFalse("Must never contain Magi<span", email.htmlBody.contains("Magi<span"))
+
+        // Financial values consistency
+        assertTrue("HTML contains effective cost", email.htmlBody.contains("Effective Cost per Pack"))
+        assertTrue("Plain text fallback contains bold headings", email.plainTextFallback.contains("*PROFITABILITY*"))
+    }
 }
