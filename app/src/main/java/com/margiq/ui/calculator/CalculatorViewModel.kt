@@ -3,8 +3,6 @@ package com.margiq.ui.calculator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.margiq.data.local.CalculationEntity
-import com.margiq.data.local.ProductEntity
-import com.margiq.data.repository.ProductRepository
 import com.margiq.data.preferences.IPreferencesRepository
 import com.margiq.data.preferences.UserPreferences
 import com.margiq.data.repository.CalculationRepository
@@ -24,7 +22,6 @@ import java.math.BigDecimal
 class CalculatorViewModel(
     private val calculationRepository: CalculationRepository,
     private val preferencesRepository: IPreferencesRepository,
-    private val productRepository: ProductRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CalculatorUiState())
@@ -320,36 +317,7 @@ class CalculatorViewModel(
         recalculate()
     }
 
-    fun loadProduct(product: ProductEntity) {
-        val input = product.toCalculationInput()
-        _uiState.update {
-            it.copy(
-                productName = input.productName,
-                supplierName = product.supplierName,
-                ptrText = input.ptr.toPlainString(),
-                purchaseTaxRateText = input.purchaseTaxRate.toPlainString(),
-                purchasePriceMode = input.purchasePriceMode,
-                purchaseTaxClassification = input.purchaseTaxClassification,
-                isInputTaxCreditEnabled = input.isInputTaxCreditEnabled,
-                sellingPriceText = input.sellingPrice.toPlainString(),
-                sellingTaxRateText = input.sellingTaxRate.toPlainString(),
-                sellingPriceMode = input.sellingPriceMode,
-                quantityText = input.quantity.toString(),
-                unitsPerPackText = input.unitsPerPack.toString(),
-                isSupplierDiscountEnabled = product.isSupplierDiscountEnabled,
-                supplierDiscountText = product.supplierDiscountPercent,
-                isSupplierOfferEnabled = product.isSupplierOfferEnabled,
-                offerBuyQuantityText = product.offerBuyQuantity.toString(),
-                offerFreeQuantityText = product.offerFreeQuantity.toString(),
-                currentLoadedProductId = product.id,
-                currentSavedId = null,
-                userMessage = "Loaded '${product.productName}' from Product Library"
-            )
-        }
-        recalculate()
-    }
-
-    fun loadCalculationInput(input: CalculationInput, loadedProductId: Long? = null) {
+    fun loadCalculationInput(input: CalculationInput) {
         _uiState.update {
             it.copy(
                 productName = input.productName,
@@ -369,45 +337,11 @@ class CalculatorViewModel(
                 isSupplierOfferEnabled = input.isSupplierOfferEnabled,
                 offerBuyQuantityText = input.offerBuyQuantity.toString(),
                 offerFreeQuantityText = input.offerFreeQuantity.toString(),
-                currentLoadedProductId = loadedProductId,
                 currentSavedId = null,
                 userMessage = "Loaded '${input.productName}' into Calculator"
             )
         }
         recalculate()
-    }
-
-    fun saveToProductLibrary() {
-        val currentState = _uiState.value
-        if (currentState.productName.isBlank()) {
-            _uiState.update { it.copy(userMessage = "Please enter a product name before saving to library") }
-            return
-        }
-
-        val repo = productRepository
-        if (repo == null) {
-            _uiState.update { it.copy(userMessage = "Product repository not available") }
-            return
-        }
-
-        val entity = ProductEntity.fromCalculationInput(
-            input = currentState.calculationInput,
-            id = currentState.currentLoadedProductId ?: 0
-        )
-
-        viewModelScope.launch {
-            try {
-                val savedId = repo.saveOrUpdateProduct(entity)
-                _uiState.update {
-                    it.copy(
-                        currentLoadedProductId = savedId,
-                        userMessage = "Product '${entity.productName}' saved to Product Library"
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(userMessage = "Error saving product: ${e.message}") }
-            }
-        }
     }
 
     private fun recalculate() {

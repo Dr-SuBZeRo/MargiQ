@@ -2,7 +2,6 @@ package com.margiq.ui.calculator
 
 import com.margiq.data.local.CalculationDao
 import com.margiq.data.local.CalculationEntity
-import com.margiq.data.local.ProductEntity
 import com.margiq.data.preferences.ThemePreference
 import com.margiq.data.preferences.UserPreferences
 import com.margiq.data.repository.CalculationRepository
@@ -13,7 +12,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -333,58 +331,6 @@ class CalculatorViewModelTest {
         assertEquals("0.00", state.supplierDiscountText)
     }
 
-    @Test
-    fun testLoadProductPopulatesFieldsAndCalculates() = runTest {
-        val fakePrefs = FakePreferencesRepository()
-        val viewModel = CalculatorViewModel(calculationRepository, fakePrefs)
-
-        val product = ProductEntity(
-            id = 42,
-            productName = "Ibuprofen 400",
-            supplierName = "Cipla Wholesale",
-            ptr = "50.00",
-            purchaseTaxRate = "12.00",
-            sellingPrice = "100.00",
-            sellingTaxRate = "12.00",
-            unitsPerPack = 10,
-            isSupplierDiscountEnabled = true,
-            supplierDiscountPercent = "5.00"
-        )
-
-        viewModel.loadProduct(product)
-
-        val state = viewModel.uiState.value
-        assertEquals("Ibuprofen 400", state.productName)
-        assertEquals("Cipla Wholesale", state.supplierName)
-        assertEquals("50.00", state.ptrText)
-        assertEquals("100.00", state.sellingPriceText)
-        assertEquals("10", state.unitsPerPackText)
-        assertTrue(state.isSupplierDiscountEnabled)
-        assertEquals(42L, state.currentLoadedProductId)
-        assertTrue(state.calculationResult.isValid)
-    }
-
-    @Test
-    fun testSaveToProductLibrary() = runTest {
-        val fakeProductDao = FakeProductDao()
-        val productRepo = com.margiq.data.repository.ProductRepository(fakeProductDao)
-        val fakePrefs = FakePreferencesRepository()
-        val viewModel = CalculatorViewModel(calculationRepository, fakePrefs, productRepo)
-
-        viewModel.onProductNameChanged("Paracetamol 650")
-        viewModel.onSupplierNameChanged("Apex Pharma")
-        viewModel.onPtrChanged("30.00")
-        viewModel.onSellingPriceChanged("60.00")
-        viewModel.saveToProductLibrary()
-        advanceUntilIdle()
-
-        assertEquals("Product 'Paracetamol 650' saved to Product Library", viewModel.uiState.value.userMessage)
-        assertNotNull(viewModel.uiState.value.currentLoadedProductId)
-        assertEquals(1, fakeProductDao.items.size)
-        assertEquals("Paracetamol 650", fakeProductDao.items[0].productName)
-        assertEquals("Apex Pharma", fakeProductDao.items[0].supplierName)
-    }
-
     private class FakeCalculationDao : CalculationDao {
         val items = mutableListOf<CalculationEntity>()
         private var idCounter = 1L
@@ -452,41 +398,6 @@ class CalculatorViewModelTest {
             prefs = UserPreferences()
         }
     }
-
-    private class FakeProductDao : com.margiq.data.local.ProductDao {
-        val items = mutableListOf<ProductEntity>()
-        var idCounter = 1L
-
-        override fun getAllProducts(): Flow<List<ProductEntity>> = flowOf(items)
-        override fun searchProducts(query: String): Flow<List<ProductEntity>> =
-            flowOf(items.filter { it.productName.contains(query, ignoreCase = true) || it.supplierName.contains(query, ignoreCase = true) })
-        override suspend fun getProductById(id: Long): ProductEntity? = items.find { it.id == id }
-        override suspend fun getProductByNameAndSupplier(name: String, supplier: String): ProductEntity? =
-            items.find { it.productName.equals(name, ignoreCase = true) && it.supplierName.equals(supplier, ignoreCase = true) }
-        override suspend fun insertProduct(entity: ProductEntity): Long {
-            val id = if (entity.id > 0) entity.id else idCounter++
-            items.removeAll { it.id == id }
-            items.add(entity.copy(id = id))
-            return id
-        }
-        override suspend fun updateProduct(entity: ProductEntity): Int {
-            items.removeAll { it.id == entity.id }
-            items.add(entity)
-            return 1
-        }
-        override suspend fun deleteProduct(entity: ProductEntity): Int {
-            return if (items.removeAll { it.id == entity.id }) 1 else 0
-        }
-        override suspend fun deleteById(id: Long): Int {
-            return if (items.removeAll { it.id == id }) 1 else 0
-        }
-        override suspend fun clearAllProducts(): Int {
-            val count = items.size
-            items.clear()
-            return count
-        }
-    }
-
 
     @Test
     fun testLoadCalculationFromHistoryDoesNotMutateSavedRecord() = runTest {

@@ -13,7 +13,7 @@
   <p align="center">
     <a href="https://github.com/Dr-SuBZeRo/MargiQ"><img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github" alt="Repository" /></a>
     <a href="https://github.com/Dr-SuBZeRo/MargiQ/actions"><img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI" /></a>
-    <a href="https://github.com/Dr-SuBZeRo/MargiQ/releases/latest"><img src="https://img.shields.io/badge/Release-v2.1.5-00897B?style=for-the-badge&logo=android" alt="Latest Release" /></a>
+    <a href="https://github.com/Dr-SuBZeRo/MargiQ/releases/latest"><img src="https://img.shields.io/badge/Release-v2.2.0-00897B?style=for-the-badge&logo=android" alt="Latest Release" /></a>
     <a href="https://github.com/Dr-SuBZeRo/MargiQ/issues"><img src="https://img.shields.io/badge/Issues-Report%20a%20bug-red?style=for-the-badge&logo=github" alt="Report a bug" /></a>
   </p>
 
@@ -22,7 +22,7 @@
     <img src="https://img.shields.io/badge/Language-Kotlin_2.2.0-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" />
     <img src="https://img.shields.io/badge/UI-Jetpack_Compose_Material_3-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Compose" />
     <img src="https://img.shields.io/badge/Architecture-Clean_MVVM-FF6F00?style=flat-square" alt="Architecture" />
-    <img src="https://img.shields.io/badge/Database-Room_SQLite_v5-2E7D32?style=flat-square&logo=sqlite&logoColor=white" alt="Room" />
+    <img src="https://img.shields.io/badge/Database-Room_SQLite_v6-2E7D32?style=flat-square&logo=sqlite&logoColor=white" alt="Room" />
     <img src="https://img.shields.io/badge/Security-Production_Signed-1565C0?style=flat-square&logo=googleplay&logoColor=white" alt="Signed Release" />
     <img src="https://img.shields.io/badge/Creator-SuBZeRo-0F766E?style=flat-square" alt="Creator" />
   </p>
@@ -64,14 +64,6 @@ Whether evaluating **Input Tax Credit (ITC)** eligibility, trade discounts, prom
   </tr>
   <tr>
     <td width="50%">
-      <h3>📚 Shared Product Library</h3>
-      <ul>
-        <li><b>Single Source of Truth:</b> Catalog reusable product pricing records with PTR, MRP, tax modes, ITC rules, and promotional schemes.</li>
-        <li><b>Instant Live Search:</b> Search across product names and supplier names instantly.</li>
-        <li><b>Cross-Screen Interoperability:</b> Load library products directly into the Calculator or either side of the Comparison Suite in one tap.</li>
-      </ul>
-    </td>
-    <td width="50%">
       <h3>⚖️ Indian GST & ITC Architecture</h3>
       <ul>
         <li><b>Tax Inclusivity Modes:</b> Independent tax-inclusive / tax-exclusive selectors for both Purchase (PTR) and Selling (MRP) pricing across all calculators and comparisons.</li>
@@ -92,7 +84,7 @@ Whether evaluating **Input Tax Credit (ITC)** eligibility, trade discounts, prom
     <td width="50%">
       <h3>🎨 Streamlined Modern Android UX</h3>
       <ul>
-        <li><b>Material Design 3 Drawer:</b> Clean top app bar with unified navigation drawer for Calculator, Product Library, Compare, History, and Settings.</li>
+        <li><b>Material Design 3 Drawer:</b> Clean top app bar with unified navigation drawer for Calculator, Compare, History, and Settings.</li>
         <li><b>Indian Rupee Typography:</b> Centralized Indian digit grouping format (e.g. <code>₹1,00,000.00</code>) formatted seamlessly.</li>
         <li><b>Private Room SQLite DB:</b> 100% on-device database with zero telemetry, accounts, ads, or background tracking.</li>
       </ul>
@@ -198,22 +190,6 @@ Whether evaluating **Input Tax Credit (ITC)** eligibility, trade discounts, prom
 
 ---
 
-### Example 5: Persistent Shared Product Library Flow
-*Centralize reusable product formulations and eliminate repetitive data entry.*
-
-```text
-1. Define in Calculator:
-   Enter product details (e.g., "Paracetamol 650mg", Supplier: "Apex Pharma", PTR: ₹28.50, MRP: ₹45.00).
-2. Tap "Save Product":
-   Instant persistence into local Room SQLite DB (v5) with automatic name/supplier deduplication.
-3. Recall in Comparison Suite:
-   Open Compare Screen → Tap "Select Product" → Live search finds "Paracetamol" in milliseconds.
-4. Compare Commercial Offers:
-   Test competing wholesaler terms against your baseline record without mutating saved data.
-5. Export to Calculator:
-   Tap "Use in Calculator" to immediately load any compared offer or library product into the main calculator.
-```
-
 <br />
 
 ## 📐 Mathematical Formulation
@@ -289,9 +265,8 @@ $$\text{Winner Determination} = \begin{cases}
 ```text
 MargiQ Architecture
  ├── 📱 UI Layer (Jetpack Compose + Material 3)
- │    ├── Material 3 Navigation Drawer (Calculator, Product Library, Compare, History, Settings)
+ │    ├── Material 3 Navigation Drawer (Calculator, Compare, History, Settings)
  │    ├── Comparison Suite (Side-by-side Hero Summary & Winner Badges)
- │    ├── Product Catalog Suite (Live Filterable Search, CRUD Dialogs)
  │    ├── History Selection Flow (Transient, non-mutating input loader)
  │    └── StateFlow reactive binding via ViewModel
  ├── 🧠 Domain Layer (Pure Kotlin + BigDecimal)
@@ -299,7 +274,7 @@ MargiQ Architecture
  │    ├── ComparisonEngine (Dual-option commercial & offer analysis)
  │    └── IndianCurrencyFormatter (L10n currency & number grouping)
  └── 🗄️ Data Layer (Room SQLite + DataStore)
-      ├── CalculationDao & CalculationEntity & ProductEntity (SQLite DB v5)
+      ├── CalculationDao & CalculationEntity (SQLite DB v6)
       └── UserPreferencesRepository (Preferences DataStore)
 ```
 
@@ -308,7 +283,7 @@ MargiQ Architecture
 | **Language** | Kotlin 2.2.0 |
 | **UI Framework** | Jetpack Compose (BOM 2024.12.01), Material 3 |
 | **Architecture** | Modern Android Architecture (MVVM + Unidirectional Data Flow) |
-| **Database** | Room SQLite `2.6.1` with KSP schema auto-exporting (Schemas 1 → 5) |
+| **Database** | Room SQLite `2.6.1` with KSP schema auto-exporting (Schemas 1 → 6) |
 | **Preferences** | Jetpack DataStore Preferences `1.1.1` |
 | **Precision Math** | `java.math.BigDecimal` with `RoundingMode.HALF_UP` |
 | **Security & Signing** | Release signing via local keystore (V2 Scheme) |
@@ -323,13 +298,13 @@ MargiQ/
 ├── .github/
 │   └── workflows/                # CI / CD verification pipelines
 ├── app/
-│   ├── schemas/                  # Versioned Room database schemas (1.json -> 5.json)
+│   ├── schemas/                  # Historical Room migration schemas (1.json -> 5.json)
 │   └── src/
 │       ├── main/
 │       │   ├── java/com/margiq/
-│       │   │   ├── data/         # Room DB, entities (Calculation, Product), DAOs, repo
+│       │   │   ├── data/         # Room DB, calculation entity/DAO and repositories
 │       │   │   ├── domain/       # Calculation engine, comparison engine & formatters
-│       │   │   └── ui/           # Screens (Calculator, Product Library, Compare, History, Settings)
+│       │   │   └── ui/           # Screens (Calculator, Compare, History, Settings)
 │       │   └── res/              # Vector drawables, mipmaps, XML configurations
 │       └── test/                 # Unit tests (math engine, comparison engine, migrations)
 ├── Icon/                         # Source branding and icon assets
@@ -400,7 +375,7 @@ All modifications adhere to rigorous test-driven validation:
   ✔ testLoadCalculationIntoSupplierBasePopulatesInputs
   ✔ testLoadCalculationFromHistoryDoesNotMutateSavedRecord
   ✔ testMigration1To2To3To4To5OnRealSqlitePreservesExistingRecordsAndReopensCorrectly
-  ... (66 unit, comparison, library & migration tests executed successfully)
+  ... (66 unit, comparison & migration tests executed successfully)
 
 BUILD SUCCESSFUL
 ```
