@@ -52,7 +52,7 @@ data class CompareSideState(
             sellingPrice = sPrice,
             sellingTaxRate = sTax,
             sellingPriceMode = sellingPriceMode,
-            quantity = 1,
+            quantity = if (isSupplierOfferEnabled && buy > 0) buy else 1,
             packName = packName.ifBlank { "Pack" },
             unitName = unitName.ifBlank { "Unit" },
             unitsPerPack = if (units > 0) units else 1,

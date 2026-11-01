@@ -437,4 +437,264 @@ class CompareViewModelTest {
         assertEquals(BigDecimal("83.33"), outcome.resultB.roundedCostPerIndividualUnit)
         assertEquals(WinnerSide.SIDE_B, outcome.highlight!!.lowestCostSide)
     }
+
+    @Test
+    fun testIssue1ExactReproductionBuy5Get1FreeWithDiscount() {
+        // Exact reproduction from GitHub Issue #1:
+        // PTR: ₹70.10, Purchase GST: 5% (TAX_EXCLUSIVE), ITC: Disabled, Supplier Discount: 2%
+        // Buy: 5, Free: 1, Selling Price: ₹92.00, Selling GST: 0%, Units per Pack: 1
+        viewModel.updateSideB {
+            it.copy(
+                productName = "Option B",
+                ptrText = "70.10",
+                purchaseTaxRateText = "5.00",
+                purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+                purchaseTaxClassification = PurchaseTaxClassification.RECOVERABLE_GST,
+                isInputTaxCreditEnabled = false,
+                isSupplierDiscountEnabled = true,
+                supplierDiscountText = "2.00",
+                isSupplierOfferEnabled = true,
+                offerBuyQuantityText = "5",
+                offerFreeQuantityText = "1",
+                sellingPriceText = "92.00",
+                sellingTaxRateText = "0.00",
+                sellingPriceMode = TaxPriceMode.TAX_INCLUSIVE,
+                unitsPerPackText = "1"
+            )
+        }
+
+        val outcome = viewModel.uiState.value.productsComparison
+        assertNotNull(outcome)
+        assertTrue(outcome!!.isValid)
+
+        val resB = outcome.resultB
+        // Paid cost: 70.10 * 0.98 * 1.05 = 72.1329 for 5 packs = 360.6645
+        // Effective cost per unit across 6 units received = 360.6645 / 6 = 60.11075 -> rounded 60.11
+        assertEquals(BigDecimal("60.11"), resB.roundedCostPerIndividualUnit)
+        assertEquals(BigDecimal("60.11"), resB.roundedEffectiveCostPerReceivedPack)
+        assertEquals(BigDecimal("31.89"), resB.roundedProfitPerIndividualUnit)
+        assertEquals(BigDecimal("31.89"), resB.roundedProfitPerUnit)
+        assertEquals(BigDecimal("34.66"), resB.roundedProfitMargin)
+        assertEquals(BigDecimal("53.05"), resB.roundedMarkup)
+        assertEquals(6, resB.totalPacksReceived)
+        assertEquals(1, resB.freePacksReceived)
+    }
+
+    @Test
+    fun testBogoDisabledNoRegression() {
+        // When BOGO is disabled, standard paid cost (72.13) should be retained
+        viewModel.updateSideB {
+            it.copy(
+                productName = "Option B",
+                ptrText = "70.10",
+                purchaseTaxRateText = "5.00",
+                purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+                isInputTaxCreditEnabled = false,
+                isSupplierDiscountEnabled = true,
+                supplierDiscountText = "2.00",
+                isSupplierOfferEnabled = false,
+                offerBuyQuantityText = "5",
+                offerFreeQuantityText = "1",
+                sellingPriceText = "92.00",
+                sellingTaxRateText = "0.00",
+                unitsPerPackText = "1"
+            )
+        }
+
+        val outcome = viewModel.uiState.value.productsComparison
+        assertNotNull(outcome)
+        val resB = outcome!!.resultB
+
+        assertEquals(BigDecimal("72.13"), resB.roundedCostPerIndividualUnit)
+        assertEquals(BigDecimal("19.87"), resB.roundedProfitPerIndividualUnit)
+        assertEquals(BigDecimal("21.59"), resB.roundedProfitMargin)
+        assertEquals(BigDecimal("27.54"), resB.roundedMarkup)
+        assertEquals(1, resB.totalPacksReceived)
+        assertEquals(0, resB.freePacksReceived)
+    }
+
+    @Test
+    fun testVariousBogoRatiosInProductComparison() {
+        // Buy 1 Get 1 Free: effective cost should halve
+        viewModel.updateSideA {
+            it.copy(
+                ptrText = "100.00",
+                purchaseTaxRateText = "0.00",
+                isSupplierOfferEnabled = true,
+                offerBuyQuantityText = "1",
+                offerFreeQuantityText = "1",
+                unitsPerPackText = "1"
+            )
+        }
+        val outcome1 = viewModel.uiState.value.productsComparison!!
+        assertEquals(BigDecimal("50.00"), outcome1.resultA.roundedCostPerIndividualUnit)
+        assertEquals(2, outcome1.resultA.totalPacksReceived)
+
+        // Buy 10 Get 2 Free: 12 units for 1000 = 83.33/unit
+        viewModel.updateSideA {
+            it.copy(
+                ptrText = "100.00",
+                purchaseTaxRateText = "0.00",
+                isSupplierOfferEnabled = true,
+                offerBuyQuantityText = "10",
+                offerFreeQuantityText = "2",
+                unitsPerPackText = "1"
+            )
+        }
+        val outcome2 = viewModel.uiState.value.productsComparison!!
+        assertEquals(BigDecimal("83.33"), outcome2.resultA.roundedCostPerIndividualUnit)
+        assertEquals(12, outcome2.resultA.totalPacksReceived)
+    }
+
+    @Test
+    fun testBogoCombinedWithItcEnabledAndDisabled() {
+        // Buy 5 Get 1 Free with 12% purchase tax
+        // PTR: 100.00 (exclusive). Gross 5 packs = 500, Tax 12% = 60. Invoice = 560.
+        // With ITC enabled: tax is credited, economic cost = 500 / 6 = 83.33
+        viewModel.updateSideA {
+            it.copy(
+                ptrText = "100.00",
+                purchaseTaxRateText = "12.00",
+                purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+                isInputTaxCreditEnabled = true,
+                isSupplierOfferEnabled = true,
+                offerBuyQuantityText = "5",
+                offerFreeQuantityText = "1",
+                unitsPerPackText = "1"
+            )
+        }
+        val outcomeItc = viewModel.uiState.value.productsComparison!!
+        assertEquals(BigDecimal("83.33"), outcomeItc.resultA.roundedCostPerIndividualUnit)
+
+        // With ITC disabled: invoice is cost, economic cost = 560 / 6 = 93.33
+        viewModel.updateSideA {
+            it.copy(isInputTaxCreditEnabled = false)
+        }
+        val outcomeNoItc = viewModel.uiState.value.productsComparison!!
+        assertEquals(BigDecimal("93.33"), outcomeNoItc.resultA.roundedCostPerIndividualUnit)
+    }
+
+    @Test
+    fun testBogoWithTaxInclusiveAndExclusivePricing() {
+        // Tax-inclusive PTR: 105.00 with 5% tax -> Base per pack is 100.00, Tax is 5.00.
+        // Buy 2 Get 1 Free: 3 received for 2 paid.
+        // ITC enabled: cost is 2 * 100 = 200 / 3 = 66.67
+        viewModel.updateSideA {
+            it.copy(
+                ptrText = "105.00",
+                purchaseTaxRateText = "5.00",
+                purchasePriceMode = TaxPriceMode.TAX_INCLUSIVE,
+                isInputTaxCreditEnabled = true,
+                isSupplierOfferEnabled = true,
+                offerBuyQuantityText = "2",
+                offerFreeQuantityText = "1",
+                unitsPerPackText = "1"
+            )
+        }
+        val outcome = viewModel.uiState.value.productsComparison!!
+        assertEquals(BigDecimal("66.67"), outcome.resultA.roundedCostPerIndividualUnit)
+    }
+
+    @Test
+    fun testBogoInvalidBlankZeroNegativeQuantities() {
+        // Zero or negative buy quantity should gracefully fall back to 1 paid unit, 0 free units
+        viewModel.updateSideA {
+            it.copy(
+                ptrText = "50.00",
+                purchaseTaxRateText = "0.00",
+                isSupplierOfferEnabled = true,
+                offerBuyQuantityText = "0",
+                offerFreeQuantityText = "-2",
+                unitsPerPackText = "1"
+            )
+        }
+        val outcomeZero = viewModel.uiState.value.productsComparison!!
+        assertTrue(outcomeZero.isValid)
+        assertEquals(BigDecimal("50.00"), outcomeZero.resultA.roundedCostPerIndividualUnit)
+
+        // Blank text
+        viewModel.updateSideA {
+            it.copy(
+                offerBuyQuantityText = "",
+                offerFreeQuantityText = ""
+            )
+        }
+        val outcomeBlank = viewModel.uiState.value.productsComparison!!
+        assertTrue(outcomeBlank.isValid)
+        assertEquals(BigDecimal("50.00"), outcomeBlank.resultA.roundedCostPerIndividualUnit)
+    }
+
+    @Test
+    fun testIndependentBogoSettingsForOptionAAndOptionB() {
+        // Option A: Buy 5 Get 1 Free (effective cost ~83.33)
+        viewModel.updateSideA {
+            it.copy(
+                productName = "Product A",
+                ptrText = "100.00",
+                purchaseTaxRateText = "0.00",
+                isSupplierOfferEnabled = true,
+                offerBuyQuantityText = "5",
+                offerFreeQuantityText = "1",
+                sellingPriceText = "150.00",
+                sellingTaxRateText = "0.00",
+                unitsPerPackText = "1"
+            )
+        }
+        // Option B: No offer (cost 90.00)
+        viewModel.updateSideB {
+            it.copy(
+                productName = "Product B",
+                ptrText = "90.00",
+                purchaseTaxRateText = "0.00",
+                isSupplierOfferEnabled = false,
+                sellingPriceText = "150.00",
+                sellingTaxRateText = "0.00",
+                unitsPerPackText = "1"
+            )
+        }
+
+        val outcome = viewModel.uiState.value.productsComparison!!
+        assertTrue(outcome.isValid)
+        assertEquals(BigDecimal("83.33"), outcome.resultA.roundedCostPerIndividualUnit)
+        assertEquals(BigDecimal("90.00"), outcome.resultB.roundedCostPerIndividualUnit)
+        // Option A wins lowest cost due to BOGO
+        assertEquals(WinnerSide.SIDE_A, outcome.highlight!!.lowestCostSide)
+        assertEquals(WinnerSide.SIDE_A, outcome.highlight!!.highestProfitPerUnitSide)
+    }
+
+    @Test
+    fun testSharedReportOutputsMatchComparisonCalculation() {
+        // Configure Option B with Issue #1 example
+        viewModel.updateSideB {
+            it.copy(
+                productName = "Brand B",
+                ptrText = "70.10",
+                purchaseTaxRateText = "5.00",
+                purchasePriceMode = TaxPriceMode.TAX_EXCLUSIVE,
+                isInputTaxCreditEnabled = false,
+                isSupplierDiscountEnabled = true,
+                supplierDiscountText = "2.00",
+                isSupplierOfferEnabled = true,
+                offerBuyQuantityText = "5",
+                offerFreeQuantityText = "1",
+                sellingPriceText = "92.00",
+                sellingTaxRateText = "0.00",
+                unitsPerPackText = "1"
+            )
+        }
+
+        val state = viewModel.uiState.value
+        val outcome = state.productsComparison!!
+        val report = com.margiq.domain.sharing.ShareReportFactory.fromProductComparison(
+            outcome,
+            state.productSideA,
+            state.productSideB
+        )
+
+        // Verify share report has the exact same calculated cost and profit
+        assertEquals(BigDecimal("60.11"), report.costPerUnitB)
+        assertEquals(BigDecimal("31.89"), report.profitPerUnitB)
+        assertEquals(BigDecimal("34.66"), report.profitMarginB)
+        assertEquals(BigDecimal("53.05"), report.markupB)
+    }
 }
