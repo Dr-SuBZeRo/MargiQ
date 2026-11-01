@@ -390,6 +390,6 @@ BUILD SUCCESSFUL
   <a href="https://github.com/Dr-SuBZeRo/MargiQ"><img src="https://img.shields.io/badge/Project-MargiQ-00897B?style=flat-square" alt="MargiQ" /></a>
   
   <br /><br />
-  <p><sub>Application ID: <code>com.margiq</code> | Current Release: <code>v2.1.4</code> (versionCode <code>12</code>)</sub></p>
+  <p><sub>Application ID: <code>com.margiq</code> | Current Release: <code>v2.2.1</code> (versionCode <code>15</code>)</sub></p>
   <p><b>MargiQ</b> &bull; <i>Know your cost. Own your margin.</i></p>
 </div>
