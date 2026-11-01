@@ -25,5 +25,6 @@ keystore.properties
 *.keystore
 *.p12
 *.pfx
+release_artifacts/
 .env
 .env.*
