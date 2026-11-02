@@ -245,13 +245,13 @@ Your pricing inputs and saved calculation history are not intended to be uploade
   </a>
 </div>
 
-**Current release: v2.2.1 · versionCode 15**
+**Current release: v2.3.0 · versionCode 16**
 
 | Package | Download | Intended use |
 |:---|:---|:---|
-| Release APK | [MargiQ-v2.2.1-release.apk](https://github.com/Dr-SuBZeRo/MargiQ/releases/download/v2.2.1/MargiQ-v2.2.1-release.apk) | Recommended Android installation |
-| App Bundle | [MargiQ-v2.2.1-release.aab](https://github.com/Dr-SuBZeRo/MargiQ/releases/download/v2.2.1/MargiQ-v2.2.1-release.aab) | Play distribution workflow |
-| Debug APK | [MargiQ-v2.2.1-debug.apk](https://github.com/Dr-SuBZeRo/MargiQ/releases/download/v2.2.1/MargiQ-v2.2.1-debug.apk) | Development and testing only |
+| Release APK | [MargiQ-v2.3.0-release.apk](https://github.com/Dr-SuBZeRo/MargiQ/releases/download/v2.3.0/MargiQ-v2.3.0-release.apk) | Recommended Android installation |
+| App Bundle | [MargiQ-v2.3.0-release.aab](https://github.com/Dr-SuBZeRo/MargiQ/releases/download/v2.3.0/MargiQ-v2.3.0-release.aab) | Play distribution workflow |
+| Debug APK | [MargiQ-v2.3.0-debug.apk](https://github.com/Dr-SuBZeRo/MargiQ/releases/download/v2.3.0/MargiQ-v2.3.0-debug.apk) | Development and testing only |
 
 **Install or update**
 1. Download the release APK from the latest release page.
@@ -417,7 +417,8 @@ For code contributions, please keep financial logic in the domain layer, add reg
 
 | Version | Highlights | Notes |
 |:---|:---|:---|
-| **[v2.2.1](https://github.com/Dr-SuBZeRo/MargiQ/releases/tag/v2.2.1)** | Buy X Get Y Free comparison calculation correction; regression coverage | Latest |
+| **[v2.3.0](https://github.com/Dr-SuBZeRo/MargiQ/releases/tag/v2.3.0)** | Comparison Metric Differences; full-precision domain deltas; export parity (#2) | Latest |
+| [v2.2.1](https://github.com/Dr-SuBZeRo/MargiQ/releases/tag/v2.2.1) | Buy X Get Y Free comparison calculation correction | Previous |
 | [v2.2.0](https://github.com/Dr-SuBZeRo/MargiQ/releases/tag/v2.2.0) | Product comparison improvements | See release notes |
 | [v2.1.5](https://github.com/Dr-SuBZeRo/MargiQ/releases/tag/v2.1.5) | Rich Text, image preview and sharing UX refinement | See release notes |
 | [All releases](https://github.com/Dr-SuBZeRo/MargiQ/releases) | Earlier versions and downloads | GitHub Releases |
