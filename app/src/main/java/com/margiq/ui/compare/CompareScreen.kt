@@ -23,12 +23,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -65,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.margiq.domain.comparison.MetricDifference
 import com.margiq.domain.comparison.ProductComparisonOutcome
 import com.margiq.domain.comparison.WinnerSide
 import com.margiq.domain.model.CalculationInput
@@ -274,6 +278,7 @@ fun CompareProductsContent(
                 outcome = outcome,
                 titleA = uiState.productSideA.productName.ifBlank { "Option A" },
                 titleB = uiState.productSideB.productName.ifBlank { "Option B" },
+                isSupplierComparison = false,
                 onShare = onShare
             )
         } else if (!outcome.isValid && outcome.validationMessage != null) {
@@ -315,6 +320,7 @@ fun CompareSuppliersContent(
                 outcome = outcome,
                 titleA = uiState.supplierSideA.supplierName.ifBlank { "Supplier A" },
                 titleB = uiState.supplierSideB.supplierName.ifBlank { "Supplier B" },
+                isSupplierComparison = true,
                 onShare = onShare
             )
         } else if (!outcome.isValid && outcome.validationMessage != null) {
@@ -378,11 +384,14 @@ fun ComparisonResultCard(
     outcome: ProductComparisonOutcome,
     titleA: String,
     titleB: String,
+    isSupplierComparison: Boolean = false,
     onShare: (() -> Unit)? = null
 ) {
     val hl = outcome.highlight ?: return
     val resA = outcome.resultA
     val resB = outcome.resultB
+    val diffs = outcome.differences
+    var isExpanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -395,7 +404,7 @@ fun ComparisonResultCard(
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -410,7 +419,7 @@ fun ComparisonResultCard(
                         modifier = Modifier.padding(end = 6.dp)
                     )
                     Text(
-                        text = "Side-by-Side Comparison",
+                        text = if (isSupplierComparison) "Supplier Quote Comparison" else "Side-by-Side Comparison",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -513,57 +522,172 @@ fun ComparisonResultCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             ComparisonMetricRow(label = "Metric", valA = titleA, valB = titleB, isHeader = true)
+
+            // Purchase Price (PTR)
+            if (isSupplierComparison || resA.enteredPtr > BigDecimal.ZERO || resB.enteredPtr > BigDecimal.ZERO) {
+                ComparisonMetricRow(
+                    label = "Purchase PTR",
+                    valA = "\u20b9${resA.enteredPtr.setScale(2, java.math.RoundingMode.HALF_UP)}",
+                    valB = "\u20b9${resB.enteredPtr.setScale(2, java.math.RoundingMode.HALF_UP)}",
+                    isWinnerA = diffs?.ptr?.favourableSide == WinnerSide.SIDE_A,
+                    isWinnerB = diffs?.ptr?.favourableSide == WinnerSide.SIDE_B,
+                    difference = diffs?.ptr,
+                    labelA = titleA,
+                    labelB = titleB
+                )
+            }
+
+            // Cost per Unit
             ComparisonMetricRow(
                 label = "Cost / Unit",
                 valA = "\u20b9${resA.roundedCostPerIndividualUnit}",
                 valB = "\u20b9${resB.roundedCostPerIndividualUnit}",
-                isWinnerA = hl.lowestCostSide == WinnerSide.SIDE_A,
-                isWinnerB = hl.lowestCostSide == WinnerSide.SIDE_B
+                isWinnerA = diffs?.costPerUnit?.favourableSide == WinnerSide.SIDE_A,
+                isWinnerB = diffs?.costPerUnit?.favourableSide == WinnerSide.SIDE_B,
+                difference = diffs?.costPerUnit,
+                labelA = titleA,
+                labelB = titleB
             )
+
+            // Cost per Pack
             ComparisonMetricRow(
                 label = "Cost / Pack",
                 valA = "\u20b9${resA.roundedEffectiveCostPerReceivedPack}",
-                valB = "\u20b9${resB.roundedEffectiveCostPerReceivedPack}"
+                valB = "\u20b9${resB.roundedEffectiveCostPerReceivedPack}",
+                isWinnerA = diffs?.costPerPack?.favourableSide == WinnerSide.SIDE_A,
+                isWinnerB = diffs?.costPerPack?.favourableSide == WinnerSide.SIDE_B,
+                difference = diffs?.costPerPack,
+                labelA = titleA,
+                labelB = titleB
             )
+
+            // Selling Price (MRP)
             ComparisonMetricRow(
                 label = "Selling Price (MRP)",
                 valA = "\u20b9${resA.roundedCustomerSellingPrice}",
-                valB = "\u20b9${resB.roundedCustomerSellingPrice}"
+                valB = "\u20b9${resB.roundedCustomerSellingPrice}",
+                difference = diffs?.customerSellingPrice,
+                labelA = titleA,
+                labelB = titleB
             )
+
+            // Profit / Unit
             ComparisonMetricRow(
                 label = "Profit / Unit",
                 valA = "\u20b9${resA.roundedProfitPerIndividualUnit}",
                 valB = "\u20b9${resB.roundedProfitPerIndividualUnit}",
-                isWinnerA = hl.highestProfitPerUnitSide == WinnerSide.SIDE_A,
-                isWinnerB = hl.highestProfitPerUnitSide == WinnerSide.SIDE_B
+                isWinnerA = diffs?.profitPerUnit?.favourableSide == WinnerSide.SIDE_A,
+                isWinnerB = diffs?.profitPerUnit?.favourableSide == WinnerSide.SIDE_B,
+                difference = diffs?.profitPerUnit,
+                labelA = titleA,
+                labelB = titleB
             )
+
+            // Profit Margin
             ComparisonMetricRow(
                 label = "Profit Margin",
                 valA = "${resA.roundedProfitMargin?.toPlainString() ?: "0.00"}%",
                 valB = "${resB.roundedProfitMargin?.toPlainString() ?: "0.00"}%",
-                isWinnerA = hl.highestMarginSide == WinnerSide.SIDE_A,
-                isWinnerB = hl.highestMarginSide == WinnerSide.SIDE_B
+                isWinnerA = diffs?.profitMargin?.favourableSide == WinnerSide.SIDE_A,
+                isWinnerB = diffs?.profitMargin?.favourableSide == WinnerSide.SIDE_B,
+                difference = diffs?.profitMargin,
+                labelA = titleA,
+                labelB = titleB
             )
+
+            // Markup
             ComparisonMetricRow(
                 label = "Markup",
                 valA = "${resA.roundedMarkup?.toPlainString() ?: "0.00"}%",
-                valB = "${resB.roundedMarkup?.toPlainString() ?: "0.00"}%"
+                valB = "${resB.roundedMarkup?.toPlainString() ?: "0.00"}%",
+                isWinnerA = diffs?.markup?.favourableSide == WinnerSide.SIDE_A,
+                isWinnerB = diffs?.markup?.favourableSide == WinnerSide.SIDE_B,
+                difference = diffs?.markup,
+                labelA = titleA,
+                labelB = titleB
             )
-            ComparisonMetricRow(
-                label = "Purchase Tax",
-                valA = IndianCurrencyFormatter.formatCurrency(resA.purchaseTaxAmount),
-                valB = IndianCurrencyFormatter.formatCurrency(resB.purchaseTaxAmount)
-            )
-            ComparisonMetricRow(
-                label = "Selling Tax",
-                valA = IndianCurrencyFormatter.formatCurrency(resA.sellingTaxAmount),
-                valB = IndianCurrencyFormatter.formatCurrency(resB.sellingTaxAmount)
-            )
-            ComparisonMetricRow(
-                label = "ITC Treatment",
-                valA = if (resA.isInputTaxCreditApplied) "Credit Eligible" else "Cost Component",
-                valB = if (resB.isInputTaxCreditApplied) "Credit Eligible" else "Cost Component"
-            )
+
+            // Expandable section for Additional Financial & Tax Differences
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (isExpanded) "Hide Tax & Detailed Differences" else "Show Tax & Detailed Differences",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            AnimatedVisibility(visible = isExpanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ComparisonMetricRow(
+                        label = "Purchase Tax",
+                        valA = IndianCurrencyFormatter.formatCurrency(resA.purchaseTaxAmount),
+                        valB = IndianCurrencyFormatter.formatCurrency(resB.purchaseTaxAmount),
+                        difference = diffs?.purchaseTaxAmount,
+                        labelA = titleA,
+                        labelB = titleB
+                    )
+                    ComparisonMetricRow(
+                        label = "Selling Tax",
+                        valA = IndianCurrencyFormatter.formatCurrency(resA.sellingTaxAmount),
+                        valB = IndianCurrencyFormatter.formatCurrency(resB.sellingTaxAmount),
+                        difference = diffs?.sellingTaxAmount,
+                        labelA = titleA,
+                        labelB = titleB
+                    )
+                    if (resA.isSupplierDiscountEnabled || resB.isSupplierDiscountEnabled) {
+                        ComparisonMetricRow(
+                            label = "Supplier Discount %",
+                            valA = "${resA.supplierDiscountPercent.toPlainString()}%",
+                            valB = "${resB.supplierDiscountPercent.toPlainString()}%",
+                            isWinnerA = diffs?.supplierDiscountPercent?.favourableSide == WinnerSide.SIDE_A,
+                            isWinnerB = diffs?.supplierDiscountPercent?.favourableSide == WinnerSide.SIDE_B,
+                            difference = diffs?.supplierDiscountPercent,
+                            labelA = titleA,
+                            labelB = titleB
+                        )
+                    }
+                    if (resA.isSupplierOfferEnabled || resB.isSupplierOfferEnabled) {
+                        ComparisonMetricRow(
+                            label = "Free Packs Received",
+                            valA = "${resA.freePacksReceived}",
+                            valB = "${resB.freePacksReceived}",
+                            isWinnerA = diffs?.freePacksReceived?.favourableSide == WinnerSide.SIDE_A,
+                            isWinnerB = diffs?.freePacksReceived?.favourableSide == WinnerSide.SIDE_B,
+                            difference = diffs?.freePacksReceived,
+                            labelA = titleA,
+                            labelB = titleB
+                        )
+                    }
+                    if (resA.unitsPerPack != resB.unitsPerPack) {
+                        ComparisonMetricRow(
+                            label = "Units per Pack",
+                            valA = "${resA.unitsPerPack}",
+                            valB = "${resB.unitsPerPack}",
+                            difference = diffs?.unitsPerPack,
+                            labelA = titleA,
+                            labelB = titleB
+                        )
+                    }
+                    ComparisonMetricRow(
+                        label = "ITC Treatment",
+                        valA = if (resA.isInputTaxCreditApplied) "Credit Eligible" else "Cost Component",
+                        valB = if (resB.isInputTaxCreditApplied) "Credit Eligible" else "Cost Component"
+                    )
+                }
+            }
         }
     }
 }
@@ -614,36 +738,102 @@ fun ComparisonMetricRow(
     valB: String,
     isHeader: Boolean = false,
     isWinnerA: Boolean = false,
-    isWinnerB: Boolean = false
+    isWinnerB: Boolean = false,
+    difference: MetricDifference? = null,
+    labelA: String = "Option A",
+    labelB: String = "Option B"
 ) {
     val financeColors = FinanceTheme.colors
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 3.dp)
     ) {
-        Text(
-            text = label,
-            style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1.2f)
-        )
-        Text(
-            text = valA,
-            style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall.copy(fontWeight = if (isWinnerA) FontWeight.Bold else FontWeight.Normal),
-            color = if (isWinnerA) financeColors.profit else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = valB,
-            style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall.copy(fontWeight = if (isWinnerB) FontWeight.Bold else FontWeight.Normal),
-            color = if (isWinnerB) financeColors.profit else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1.2f)
+            )
+            Text(
+                text = valA,
+                style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall.copy(fontWeight = if (isWinnerA) FontWeight.Bold else FontWeight.Normal),
+                color = if (isWinnerA) financeColors.profit else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = valB,
+                style = if (isHeader) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodySmall.copy(fontWeight = if (isWinnerB) FontWeight.Bold else FontWeight.Normal),
+                color = if (isWinnerB) financeColors.profit else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        if (difference != null && !isHeader && difference.isDefined) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = when (difference.favourableSide) {
+                    WinnerSide.SIDE_A, WinnerSide.SIDE_B -> financeColors.profit.copy(alpha = 0.08f)
+                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                },
+                border = BorderStroke(
+                    0.5.dp,
+                    when (difference.favourableSide) {
+                        WinnerSide.SIDE_A, WinnerSide.SIDE_B -> financeColors.profit.copy(alpha = 0.25f)
+                        else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                difference.isTie -> Icons.Default.CheckCircle
+                                else -> Icons.AutoMirrored.Filled.TrendingUp
+                            },
+                            contentDescription = null,
+                            tint = when (difference.favourableSide) {
+                                WinnerSide.SIDE_A, WinnerSide.SIDE_B -> financeColors.profit
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier
+                                .size(12.dp)
+                                .padding(end = 4.dp)
+                        )
+                        Text(
+                            text = difference.formatCompactSummary(labelA, labelB),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = "(${difference.formatCompactSigned()})",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                        color = when (difference.favourableSide) {
+                            WinnerSide.SIDE_A, WinnerSide.SIDE_B -> financeColors.profit
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+            }
+        }
     }
 }
+
 @Composable
 fun ProductInputSideCard(
     sideLabel: String,

@@ -1,5 +1,6 @@
 package com.margiq.domain.sharing
 
+import com.margiq.domain.comparison.ComparisonDifferences
 import com.margiq.domain.comparison.WinnerSide
 import com.margiq.domain.model.PurchaseTaxClassification
 import com.margiq.domain.model.TaxPriceMode
@@ -88,6 +89,7 @@ sealed interface ShareReport {
         val highestMarginWinner: WinnerSide,
         val primaryHighlightSummary: String,
         val secondaryHighlightSummary: String? = null,
+        val differences: ComparisonDifferences? = null,
         override val title: String = "Product Comparison Report",
         override val timestamp: Long = System.currentTimeMillis()
     ) : ShareReport
@@ -130,6 +132,7 @@ sealed interface ShareReport {
         val highestMarginWinner: WinnerSide,
         val primaryHighlightSummary: String,
         val secondaryHighlightSummary: String? = null,
+        val differences: ComparisonDifferences? = null,
         override val title: String = if (productName.isNotBlank()) "Supplier Comparison — $productName" else "Supplier Comparison Report",
         override val timestamp: Long = System.currentTimeMillis()
     ) : ShareReport

@@ -1,6 +1,7 @@
 package com.margiq.domain.sharing
 
 import com.margiq.domain.calculation.ProfitCalculationEngine
+import com.margiq.domain.comparison.ComparisonEngine
 import com.margiq.domain.comparison.ComparisonHighlight
 import com.margiq.domain.comparison.ProductComparisonOutcome
 import com.margiq.domain.comparison.WinnerSide
@@ -8,6 +9,8 @@ import com.margiq.domain.model.CalculationInput
 import com.margiq.domain.model.PurchaseTaxClassification
 import com.margiq.domain.model.TaxPriceMode
 import com.margiq.ui.compare.CompareSideState
+import com.margiq.ui.compare.SupplierComparisonBaseProduct
+import com.margiq.ui.compare.SupplierOfferSide
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -92,5 +95,58 @@ class HtmlEmailFormatterTest {
         // Financial values consistency
         assertTrue("HTML contains effective cost", email.htmlBody.contains("Effective Cost per Pack"))
         assertTrue("Plain text fallback contains bold headings", email.plainTextFallback.contains("*PROFITABILITY*"))
+    }
+
+    @Test
+    fun testProductComparisonWithDifferencesFormatting() {
+        val inputA = sampleInput.copy(ptr = BigDecimal("50.00"), sellingPrice = BigDecimal("100.00"))
+        val inputB = sampleInput.copy(ptr = BigDecimal("60.00"), sellingPrice = BigDecimal("100.00"))
+        val outcome = ComparisonEngine.compare(inputA, inputB)
+
+        val sideA = CompareSideState(productName = "Product Alpha")
+        val sideB = CompareSideState(productName = "Product Beta")
+
+        val report = ShareReportFactory.fromProductComparison(outcome, sideA, sideB)
+        val email = HtmlEmailFormatter.format(report)
+
+        assertTrue("Subject contains Product Comparison", email.subject.contains("Product Comparison"))
+        assertTrue("HTML contains Difference column header", email.htmlBody.contains("Difference (B - A)"))
+        assertTrue("HTML indicates cheaper side for Cost per Unit", email.htmlBody.contains("Product Alpha cheaper"))
+        assertTrue("Plain text fallback contains differences section", email.plainTextFallback.contains("SIDE-BY-SIDE METRICS & DIFFERENCES"))
+        assertTrue("Plain text fallback contains percentage points", email.plainTextFallback.contains("percentage points") || email.plainTextFallback.contains("pts"))
+    }
+
+    @Test
+    fun testSupplierComparisonWithDifferencesFormatting() {
+        val base = SupplierComparisonBaseProduct(
+            productName = "Paracetamol 500",
+            sellingPriceText = "120.00",
+            sellingTaxRateText = "12.00",
+            unitsPerPackText = "10"
+        )
+        val offerA = SupplierOfferSide(
+            supplierName = "Apex Pharma",
+            ptrText = "60.00",
+            purchaseTaxRateText = "12.00"
+        )
+        val offerB = SupplierOfferSide(
+            supplierName = "Zenith Meds",
+            ptrText = "70.00",
+            purchaseTaxRateText = "12.00"
+        )
+
+        val inputA = offerA.toCalculationInput(base)
+        val inputB = offerB.toCalculationInput(base)
+        val outcome = ComparisonEngine.compare(inputA, inputB)
+
+        val report = ShareReportFactory.fromSupplierComparison(outcome, base, offerA, offerB)
+        val email = HtmlEmailFormatter.format(report)
+
+        assertTrue("Subject contains Supplier Comparison", email.subject.contains("Supplier Comparison"))
+        assertTrue("HTML contains product name", email.htmlBody.contains("Paracetamol 500"))
+        assertTrue("HTML contains Difference column header", email.htmlBody.contains("Difference (B - A)"))
+        assertTrue("HTML contains Apex Pharma cheaper", email.htmlBody.contains("Apex Pharma cheaper"))
+        assertTrue("HTML contains Purchase PTR row", email.htmlBody.contains("Purchase PTR"))
+        assertTrue("Plain text fallback contains supplier comparison", email.plainTextFallback.contains("SUPPLIER COMPARISON"))
     }
 }

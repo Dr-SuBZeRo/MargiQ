@@ -166,4 +166,57 @@ class RichTextShareFormatterTest {
         assertTrue("Contains MargiQ", formatted.contains("MargiQ"))
         org.junit.Assert.assertFalse("Must never contain misspelling MagiQ", formatted.contains("MagiQ"))
     }
+
+    @Test
+    fun testProductComparisonWithDifferencesFormatting() {
+        val inputA = CalculationInput(
+            productName = "Product A",
+            ptr = BigDecimal("50.00"),
+            purchaseTaxRate = BigDecimal.ZERO,
+            sellingPrice = BigDecimal("100.00"),
+            sellingTaxRate = BigDecimal.ZERO,
+            unitsPerPack = 1
+        )
+        val inputB = CalculationInput(
+            productName = "Product B",
+            ptr = BigDecimal("60.00"),
+            purchaseTaxRate = BigDecimal.ZERO,
+            sellingPrice = BigDecimal("100.00"),
+            sellingTaxRate = BigDecimal.ZERO,
+            unitsPerPack = 1
+        )
+        val outcome = com.margiq.domain.comparison.ComparisonEngine.compare(inputA, inputB)
+        val sideA = com.margiq.ui.compare.CompareSideState(productName = "Product A", ptrText = "50.00", sellingPriceText = "100.00", unitsPerPackText = "1")
+        val sideB = com.margiq.ui.compare.CompareSideState(productName = "Product B", ptrText = "60.00", sellingPriceText = "100.00", unitsPerPackText = "1")
+        val report = ShareReportFactory.fromProductComparison(outcome, sideA, sideB)
+        val formatted = RichTextShareFormatter.format(report)
+
+        assertTrue("Should contain differences header", formatted.contains("SIDE-BY-SIDE METRICS & DIFFERENCES"))
+        assertTrue("Should contain Cost / Unit difference", formatted.contains("• Difference: +₹10.00/unit (₹10.00/unit)"))
+        assertTrue("Should contain narrative direction", formatted.contains("➡️ Product A is cheaper by ₹10.00/unit"))
+        assertTrue("Should contain Profit / Unit difference", formatted.contains("• Difference: -₹10.00/unit (₹10.00/unit)"))
+        assertTrue("Should contain Profit Margin difference in percentage points", formatted.contains("percentage points"))
+    }
+
+    @Test
+    fun testSupplierComparisonWithDifferencesFormatting() {
+        val base = com.margiq.ui.compare.SupplierComparisonBaseProduct(
+            productName = "Paracetamol 500",
+            sellingPriceText = "150.00",
+            sellingTaxRateText = "0.00",
+            unitsPerPackText = "10"
+        )
+        val offerA = com.margiq.ui.compare.SupplierOfferSide(supplierName = "Supplier A", ptrText = "90.00")
+        val offerB = com.margiq.ui.compare.SupplierOfferSide(supplierName = "Supplier B", ptrText = "100.00")
+        val inputA = offerA.toCalculationInput(base)
+        val inputB = offerB.toCalculationInput(base)
+        val outcome = com.margiq.domain.comparison.ComparisonEngine.compare(inputA, inputB)
+        val report = ShareReportFactory.fromSupplierComparison(outcome, base, offerA, offerB)
+        val formatted = RichTextShareFormatter.format(report)
+
+        assertTrue("Should contain supplier offer metrics & differences", formatted.contains("SUPPLIER OFFER METRICS & DIFFERENCES"))
+        assertTrue("Should contain PTR difference", formatted.contains("• Difference: +₹10.00 (₹10.00)"))
+        assertTrue("Should contain narrative direction", formatted.contains("➡️ Supplier A is cheaper by ₹10.00"))
+        assertTrue("Should contain Cost per Unit difference", formatted.contains("➡️ Supplier A is cheaper by ₹1.00/unit"))
+    }
 }

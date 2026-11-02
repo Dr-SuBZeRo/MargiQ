@@ -361,53 +361,182 @@ object ShareImageRenderer {
         return bitmap
     }
 
+    private data class ComparisonImageRow(
+        val label: String,
+        val valA: String,
+        val valB: String,
+        val diff: String = "",
+        val isAdvantageA: Boolean = false,
+        val isAdvantageB: Boolean = false
+    )
+
     private fun renderProductComparison(report: ShareReport.ProductComparison, isDark: Boolean): Bitmap {
+        val diffs = report.differences
+        val rows = listOf(
+            ComparisonImageRow(
+                label = "Cost per Unit",
+                valA = IndianCurrencyFormatter.formatCurrency(report.costPerUnitA),
+                valB = IndianCurrencyFormatter.formatCurrency(report.costPerUnitB),
+                diff = diffs?.costPerUnit?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.costPerUnit?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.costPerUnit?.favourableSide == WinnerSide.SIDE_B
+            ),
+            ComparisonImageRow(
+                label = "Cost per Pack",
+                valA = IndianCurrencyFormatter.formatCurrency(report.costPerPackA),
+                valB = IndianCurrencyFormatter.formatCurrency(report.costPerPackB),
+                diff = diffs?.costPerPack?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.costPerPack?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.costPerPack?.favourableSide == WinnerSide.SIDE_B
+            ),
+            ComparisonImageRow(
+                label = "Selling Price (MRP)",
+                valA = IndianCurrencyFormatter.formatCurrency(report.sellingPriceA),
+                valB = IndianCurrencyFormatter.formatCurrency(report.sellingPriceB),
+                diff = diffs?.customerSellingPrice?.formatCompactSigned() ?: ""
+            ),
+            ComparisonImageRow(
+                label = "Profit per Unit",
+                valA = formatSignedCurrency(report.profitPerUnitA),
+                valB = formatSignedCurrency(report.profitPerUnitB),
+                diff = diffs?.profitPerUnit?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.profitPerUnit?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.profitPerUnit?.favourableSide == WinnerSide.SIDE_B
+            ),
+            ComparisonImageRow(
+                label = "Profit Margin",
+                valA = IndianCurrencyFormatter.formatPercentage(report.profitMarginA),
+                valB = IndianCurrencyFormatter.formatPercentage(report.profitMarginB),
+                diff = diffs?.profitMargin?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.profitMargin?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.profitMargin?.favourableSide == WinnerSide.SIDE_B
+            ),
+            ComparisonImageRow(
+                label = "Markup",
+                valA = IndianCurrencyFormatter.formatPercentage(report.markupA),
+                valB = IndianCurrencyFormatter.formatPercentage(report.markupB),
+                diff = diffs?.markup?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.markup?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.markup?.favourableSide == WinnerSide.SIDE_B
+            ),
+            ComparisonImageRow(
+                label = "Purchase GST",
+                valA = IndianCurrencyFormatter.formatCurrency(report.purchaseTaxA),
+                valB = IndianCurrencyFormatter.formatCurrency(report.purchaseTaxB),
+                diff = diffs?.purchaseTaxAmount?.formatCompactSigned() ?: ""
+            ),
+            ComparisonImageRow(
+                label = "Selling GST",
+                valA = IndianCurrencyFormatter.formatCurrency(report.sellingTaxA),
+                valB = IndianCurrencyFormatter.formatCurrency(report.sellingTaxB),
+                diff = diffs?.sellingTaxAmount?.formatCompactSigned() ?: ""
+            ),
+            ComparisonImageRow(
+                label = "ITC Treatment",
+                valA = report.itcTreatmentA,
+                valB = report.itcTreatmentB,
+                diff = "-"
+            )
+        )
+
+        val insights = mutableListOf<String>()
+        diffs?.costPerUnit?.let { if (!it.isTie && it.isDefined) insights.add(it.formatNarrative(report.titleA, report.titleB)) }
+        diffs?.profitPerUnit?.let { if (!it.isTie && it.isDefined) insights.add(it.formatNarrative(report.titleA, report.titleB)) }
+        diffs?.profitMargin?.let { if (!it.isTie && it.isDefined) insights.add(it.formatNarrative(report.titleA, report.titleB)) }
+
         return renderSideBySide(
             title = "PRODUCT COMPARISON",
             primaryHighlight = report.primaryHighlightSummary,
             nameA = report.titleA,
             nameB = report.titleB,
-            rows = listOf(
-                "Cost per Unit" to (IndianCurrencyFormatter.formatCurrency(report.costPerUnitA) to IndianCurrencyFormatter.formatCurrency(report.costPerUnitB)),
-                "Cost per Pack" to (IndianCurrencyFormatter.formatCurrency(report.costPerPackA) to IndianCurrencyFormatter.formatCurrency(report.costPerPackB)),
-                "Selling Price (MRP)" to (IndianCurrencyFormatter.formatCurrency(report.sellingPriceA) to IndianCurrencyFormatter.formatCurrency(report.sellingPriceB)),
-                "Profit per Unit" to (formatSignedCurrency(report.profitPerUnitA) to formatSignedCurrency(report.profitPerUnitB)),
-                "Profit Margin" to (IndianCurrencyFormatter.formatPercentage(report.profitMarginA) to IndianCurrencyFormatter.formatPercentage(report.profitMarginB)),
-                "Markup" to (IndianCurrencyFormatter.formatPercentage(report.markupA) to IndianCurrencyFormatter.formatPercentage(report.markupB)),
-                "Purchase GST" to (IndianCurrencyFormatter.formatCurrency(report.purchaseTaxA) to IndianCurrencyFormatter.formatCurrency(report.purchaseTaxB)),
-                "Selling GST" to (IndianCurrencyFormatter.formatCurrency(report.sellingTaxA) to IndianCurrencyFormatter.formatCurrency(report.sellingTaxB)),
-                "ITC Treatment" to (report.itcTreatmentA to report.itcTreatmentB)
-            ),
+            rows = rows,
             winners = listOf(
                 "Lowest Cost" to winnerText(report.lowestCostWinner, report.titleA, report.titleB),
                 "Highest Profit" to winnerText(report.highestProfitWinner, report.titleA, report.titleB),
                 "Highest Margin" to winnerText(report.highestMarginWinner, report.titleA, report.titleB)
             ),
+            differenceInsights = insights,
             isDark = isDark,
             timestamp = report.timestamp
         )
     }
 
     private fun renderSupplierComparison(report: ShareReport.SupplierComparison, isDark: Boolean): Bitmap {
+        val diffs = report.differences
+        val rows = listOf(
+            ComparisonImageRow(
+                label = "Purchase Price (PTR)",
+                valA = IndianCurrencyFormatter.formatCurrency(report.ptrA),
+                valB = IndianCurrencyFormatter.formatCurrency(report.ptrB),
+                diff = diffs?.ptr?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.ptr?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.ptr?.favourableSide == WinnerSide.SIDE_B
+            ),
+            ComparisonImageRow(
+                label = "Purchase GST Rate",
+                valA = IndianCurrencyFormatter.formatPercentage(report.purchaseTaxRateA),
+                valB = IndianCurrencyFormatter.formatPercentage(report.purchaseTaxRateB),
+                diff = diffs?.purchaseTaxRate?.formatCompactSigned() ?: ""
+            ),
+            ComparisonImageRow(
+                label = "Cost per Unit",
+                valA = IndianCurrencyFormatter.formatCurrency(report.costPerUnitA),
+                valB = IndianCurrencyFormatter.formatCurrency(report.costPerUnitB),
+                diff = diffs?.costPerUnit?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.costPerUnit?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.costPerUnit?.favourableSide == WinnerSide.SIDE_B
+            ),
+            ComparisonImageRow(
+                label = "Cost per Pack",
+                valA = IndianCurrencyFormatter.formatCurrency(report.costPerPackA),
+                valB = IndianCurrencyFormatter.formatCurrency(report.costPerPackB),
+                diff = diffs?.costPerPack?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.costPerPack?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.costPerPack?.favourableSide == WinnerSide.SIDE_B
+            ),
+            ComparisonImageRow(
+                label = "Profit per Unit",
+                valA = formatSignedCurrency(report.profitPerUnitA),
+                valB = formatSignedCurrency(report.profitPerUnitB),
+                diff = diffs?.profitPerUnit?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.profitPerUnit?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.profitPerUnit?.favourableSide == WinnerSide.SIDE_B
+            ),
+            ComparisonImageRow(
+                label = "Profit Margin",
+                valA = IndianCurrencyFormatter.formatPercentage(report.profitMarginA),
+                valB = IndianCurrencyFormatter.formatPercentage(report.profitMarginB),
+                diff = diffs?.profitMargin?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.profitMargin?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.profitMargin?.favourableSide == WinnerSide.SIDE_B
+            ),
+            ComparisonImageRow(
+                label = "Markup",
+                valA = IndianCurrencyFormatter.formatPercentage(report.markupA),
+                valB = IndianCurrencyFormatter.formatPercentage(report.markupB),
+                diff = diffs?.markup?.formatCompactSigned() ?: "",
+                isAdvantageA = diffs?.markup?.favourableSide == WinnerSide.SIDE_A,
+                isAdvantageB = diffs?.markup?.favourableSide == WinnerSide.SIDE_B
+            )
+        )
+
+        val insights = mutableListOf<String>()
+        diffs?.costPerUnit?.let { if (!it.isTie && it.isDefined) insights.add(it.formatNarrative(report.supplierNameA, report.supplierNameB)) }
+        diffs?.profitPerUnit?.let { if (!it.isTie && it.isDefined) insights.add(it.formatNarrative(report.supplierNameA, report.supplierNameB)) }
+        diffs?.profitMargin?.let { if (!it.isTie && it.isDefined) insights.add(it.formatNarrative(report.supplierNameA, report.supplierNameB)) }
+
         return renderSideBySide(
             title = "SUPPLIER COMPARISON — ${report.productName.take(24)}",
             primaryHighlight = report.primaryHighlightSummary,
             nameA = report.supplierNameA,
             nameB = report.supplierNameB,
-            rows = listOf(
-                "Purchase Price (PTR)" to (IndianCurrencyFormatter.formatCurrency(report.ptrA) to IndianCurrencyFormatter.formatCurrency(report.ptrB)),
-                "Purchase GST Rate" to (IndianCurrencyFormatter.formatPercentage(report.purchaseTaxRateA) to IndianCurrencyFormatter.formatPercentage(report.purchaseTaxRateB)),
-                "Cost per Unit" to (IndianCurrencyFormatter.formatCurrency(report.costPerUnitA) to IndianCurrencyFormatter.formatCurrency(report.costPerUnitB)),
-                "Cost per Pack" to (IndianCurrencyFormatter.formatCurrency(report.costPerPackA) to IndianCurrencyFormatter.formatCurrency(report.costPerPackB)),
-                "Profit per Unit" to (formatSignedCurrency(report.profitPerUnitA) to formatSignedCurrency(report.profitPerUnitB)),
-                "Profit Margin" to (IndianCurrencyFormatter.formatPercentage(report.profitMarginA) to IndianCurrencyFormatter.formatPercentage(report.profitMarginB)),
-                "Markup" to (IndianCurrencyFormatter.formatPercentage(report.markupA) to IndianCurrencyFormatter.formatPercentage(report.markupB))
-            ),
+            rows = rows,
             winners = listOf(
                 "Lowest Cost" to winnerText(report.lowestCostWinner, report.supplierNameA, report.supplierNameB),
                 "Highest Profit" to winnerText(report.highestProfitWinner, report.supplierNameA, report.supplierNameB),
                 "Highest Margin" to winnerText(report.highestMarginWinner, report.supplierNameA, report.supplierNameB)
             ),
+            differenceInsights = insights,
             isDark = isDark,
             timestamp = report.timestamp
         )
@@ -418,8 +547,9 @@ object ShareImageRenderer {
         primaryHighlight: String,
         nameA: String,
         nameB: String,
-        rows: List<Pair<String, Pair<String, String>>>,
+        rows: List<ComparisonImageRow>,
         winners: List<Pair<String, String>>,
+        differenceInsights: List<String> = emptyList(),
         isDark: Boolean,
         timestamp: Long
     ): Bitmap {
@@ -428,10 +558,12 @@ object ShareImageRenderer {
         val highlightH = 80f
         val winnersH = 110f
         val tableH = 50f + (rows.size * 48f) + 16f
+        val insightsH = if (differenceInsights.isNotEmpty()) (48f + differenceInsights.size * 32f + 16f) else 0f
         val footerH = 64f
         val spacing = 20f
 
-        val totalHeight = (headerH + spacing + highlightH + spacing + winnersH + spacing + tableH + footerH + 40f).toInt()
+        val totalHeight = (headerH + spacing + highlightH + spacing + winnersH + spacing + tableH +
+                (if (insightsH > 0f) spacing + insightsH else 0f) + footerH + 40f).toInt()
         val bitmap = Bitmap.createBitmap(BITMAP_WIDTH, totalHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         canvas.drawColor(p.bg)
@@ -459,8 +591,6 @@ object ShareImageRenderer {
             textSize = 22f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        canvas.drawText(title, PADDING_X, 126f, titlePaint)
-
         val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
         val dateText = dateFormat.format(Date(timestamp))
         val datePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -468,6 +598,10 @@ object ShareImageRenderer {
             textSize = 20f
             textAlign = Paint.Align.RIGHT
         }
+        val dateWidth = datePaint.measureText(dateText)
+        val maxTitleW = (BITMAP_WIDTH - 2 * PADDING_X) - dateWidth - 24f
+        val displayTitle = fitText(title, maxTitleW, titlePaint)
+        canvas.drawText(displayTitle, PADDING_X, 126f, titlePaint)
         canvas.drawText(dateText, BITMAP_WIDTH - PADDING_X, 126f, datePaint)
 
         var y = headerH + spacing
@@ -491,7 +625,9 @@ object ShareImageRenderer {
             textSize = 24f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        canvas.drawText("🏆  $primaryHighlight", PADDING_X + 24f, y + 48f, hlTextPaint)
+        val maxHlWidth = cardWidth - 48f
+        val displayHighlight = fitText("🏆  $primaryHighlight", maxHlWidth, hlTextPaint)
+        canvas.drawText(displayHighlight, PADDING_X + 24f, y + 48f, hlTextPaint)
 
         y += highlightH + spacing
 
@@ -512,7 +648,9 @@ object ShareImageRenderer {
         winners.forEachIndexed { i, (cat, win) ->
             val cx = PADDING_X + (i + 0.5f) * wColW
             canvas.drawText(cat, cx, y + 40f, wLabelPaint)
-            canvas.drawText(win, cx, y + 80f, wValPaint)
+            val maxWinWidth = wColW - 16f
+            val displayWin = fitText(win, maxWinWidth, wValPaint)
+            canvas.drawText(displayWin, cx, y + 80f, wValPaint)
             if (i > 0) {
                 val divX = PADDING_X + i * wColW
                 val divPaint = Paint().apply {
@@ -525,7 +663,7 @@ object ShareImageRenderer {
 
         y += winnersH + spacing
 
-        // Comparison Table Card
+        // Comparison Table Card with Differences
         drawCard(canvas, PADDING_X, y, cardWidth, tableH, p)
         val thPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = p.textPrimary
@@ -544,13 +682,21 @@ object ShareImageRenderer {
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             textAlign = Paint.Align.RIGHT
         }
+        val thRightDiff = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = if (isDark) Color.parseColor("#93C5FD") else Color.parseColor("#1E40AF")
+            textSize = 19f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = Paint.Align.RIGHT
+        }
 
-        val colA_X = PADDING_X + cardWidth * 0.65f
-        val colB_X = PADDING_X + cardWidth - 24f
+        val colA_X = PADDING_X + cardWidth * 0.48f
+        val colB_X = PADDING_X + cardWidth * 0.72f
+        val colDiff_X = PADDING_X + cardWidth - 24f
 
         canvas.drawText("Metric", PADDING_X + 24f, y + 36f, thPaint)
-        canvas.drawText(nameA.take(14), colA_X, y + 36f, thRightA)
-        canvas.drawText(nameB.take(14), colB_X, y + 36f, thRightB)
+        canvas.drawText(nameA.take(12), colA_X, y + 36f, thRightA)
+        canvas.drawText(nameB.take(12), colB_X, y + 36f, thRightB)
+        canvas.drawText("Diff (B-A)", colDiff_X, y + 36f, thRightDiff)
 
         var tRowY = y + 50f
         val lblPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -562,9 +708,32 @@ object ShareImageRenderer {
             textSize = 20f
             textAlign = Paint.Align.RIGHT
         }
+        val valPaintA_Win = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = p.brandGreen
+            textSize = 20f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = Paint.Align.RIGHT
+        }
         val valPaintB = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = p.textPrimary
             textSize = 20f
+            textAlign = Paint.Align.RIGHT
+        }
+        val valPaintB_Win = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = p.brandGreen
+            textSize = 20f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = Paint.Align.RIGHT
+        }
+        val diffPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = if (isDark) Color.parseColor("#93C5FD") else Color.parseColor("#1E40AF")
+            textSize = 19f
+            textAlign = Paint.Align.RIGHT
+        }
+        val diffPaintWin = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = p.brandGreen
+            textSize = 19f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             textAlign = Paint.Align.RIGHT
         }
         val altRowPaint = Paint().apply { color = p.tableAltRow }
@@ -573,18 +742,48 @@ object ShareImageRenderer {
             strokeWidth = 1f
         }
 
-        rows.forEachIndexed { i, (lbl, vals) ->
+        rows.forEachIndexed { i, row ->
             if (i % 2 == 1) {
                 canvas.drawRect(PADDING_X + 10f, tRowY, PADDING_X + cardWidth - 10f, tRowY + 48f, altRowPaint)
             }
-            canvas.drawText(lbl, PADDING_X + 24f, tRowY + 32f, lblPaint)
-            canvas.drawText(vals.first, colA_X, tRowY + 32f, valPaintA)
-            canvas.drawText(vals.second, colB_X, tRowY + 32f, valPaintB)
+            val maxLabelWidth = colA_X - PADDING_X - 32f
+            val displayLabel = fitText(row.label, maxLabelWidth, lblPaint)
+            canvas.drawText(displayLabel, PADDING_X + 24f, tRowY + 32f, lblPaint)
+            canvas.drawText(row.valA, colA_X, tRowY + 32f, if (row.isAdvantageA) valPaintA_Win else valPaintA)
+            canvas.drawText(row.valB, colB_X, tRowY + 32f, if (row.isAdvantageB) valPaintB_Win else valPaintB)
+            if (row.diff.isNotBlank()) {
+                val hasAdvantage = row.isAdvantageA || row.isAdvantageB
+                canvas.drawText(row.diff, colDiff_X, tRowY + 32f, if (hasAdvantage) diffPaintWin else diffPaint)
+            }
             canvas.drawLine(PADDING_X + 20f, tRowY + 48f, PADDING_X + cardWidth - 20f, tRowY + 48f, rowDivPaint)
             tRowY += 48f
         }
 
         y += tableH + spacing
+
+        // Difference Insights Card
+        if (differenceInsights.isNotEmpty()) {
+            drawCard(canvas, PADDING_X, y, cardWidth, insightsH, p)
+            val insightTitlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = if (isDark) Color.parseColor("#93C5FD") else Color.parseColor("#1E40AF")
+                textSize = 20f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            }
+            canvas.drawText("💡 KEY DIFFERENCES & ADVANTAGES", PADDING_X + 24f, y + 36f, insightTitlePaint)
+
+            var inY = y + 68f
+            val insightItemPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = p.textPrimary
+                textSize = 19f
+            }
+            val maxInsightWidth = cardWidth - 48f
+            differenceInsights.forEach { item ->
+                val displayItem = fitText("• $item", maxInsightWidth, insightItemPaint)
+                canvas.drawText(displayItem, PADDING_X + 24f, inY, insightItemPaint)
+                inY += 32f
+            }
+            y += insightsH + spacing
+        }
 
         // Footer
         val footerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -621,5 +820,18 @@ object ShareImageRenderer {
     private fun formatSignedCurrency(amount: BigDecimal): String {
         val formatted = IndianCurrencyFormatter.formatCurrency(amount)
         return if (amount > BigDecimal.ZERO) "+$formatted" else formatted
+    }
+
+    internal fun fitText(text: String, maxWidth: Float, paint: Paint): String {
+        if (maxWidth <= 0f) return ""
+        if (paint.measureText(text) <= maxWidth) return text
+        val ellipsis = "..."
+        val available = maxWidth - paint.measureText(ellipsis)
+        if (available <= 0f) return ellipsis
+        var end = text.length
+        while (end > 0 && paint.measureText(text, 0, end) > available) {
+            end--
+        }
+        return text.substring(0, end).trimEnd() + ellipsis
     }
 }

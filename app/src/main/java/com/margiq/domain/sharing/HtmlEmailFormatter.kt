@@ -1,5 +1,7 @@
 package com.margiq.domain.sharing
 
+import com.margiq.domain.comparison.FavourabilityRule
+import com.margiq.domain.comparison.MetricDifference
 import com.margiq.domain.comparison.WinnerSide
 import com.margiq.domain.util.IndianCurrencyFormatter
 import java.math.BigDecimal
@@ -269,7 +271,7 @@ object HtmlEmailFormatter {
       </table>
     </div>
 
-    <!-- Side-by-Side Table -->
+    <!-- Side-by-Side Table with Differences -->
     <div style="padding: 20px 24px;">
       <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
         <thead>
@@ -277,6 +279,7 @@ object HtmlEmailFormatter {
             <th style="padding: 10px 12px; text-align: left; color: #475569;">Metric</th>
             <th style="padding: 10px 12px; text-align: right; color: #1A365D;">$escapedA</th>
             <th style="padding: 10px 12px; text-align: right; color: #1A365D;">$escapedB</th>
+            <th style="padding: 10px 12px; text-align: right; color: #1E40AF;">Difference (B - A)</th>
           </tr>
         </thead>
         <tbody>
@@ -284,46 +287,55 @@ object HtmlEmailFormatter {
             <td style="padding: 10px 12px; color: #64748B;">Cost per Unit</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold;">${IndianCurrencyFormatter.formatCurrency(report.costPerUnitA)}</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold;">${IndianCurrencyFormatter.formatCurrency(report.costPerUnitB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.costPerUnit, report.titleA, report.titleB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC;">
             <td style="padding: 10px 12px; color: #64748B;">Cost per Pack</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.costPerPackA)}</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.costPerPackB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.costPerPack, report.titleA, report.titleB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0;">
             <td style="padding: 10px 12px; color: #64748B;">Selling Price (MRP)</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.sellingPriceA)}</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.sellingPriceB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.customerSellingPrice, report.titleA, report.titleB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC;">
             <td style="padding: 10px 12px; color: #64748B;">Profit per Unit</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: #15803D;">${formatSignedCurrency(report.profitPerUnitA)}</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: #15803D;">${formatSignedCurrency(report.profitPerUnitB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.profitPerUnit, report.titleA, report.titleB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0;">
             <td style="padding: 10px 12px; color: #64748B;">Profit Margin</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold;">${IndianCurrencyFormatter.formatPercentage(report.profitMarginA)}</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold;">${IndianCurrencyFormatter.formatPercentage(report.profitMarginB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.profitMargin, report.titleA, report.titleB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC;">
             <td style="padding: 10px 12px; color: #64748B;">Markup</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatPercentage(report.markupA)}</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatPercentage(report.markupB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.markup, report.titleA, report.titleB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0;">
             <td style="padding: 10px 12px; color: #64748B;">Purchase GST</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.purchaseTaxA)}</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.purchaseTaxB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.purchaseTaxAmount, report.titleA, report.titleB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC;">
             <td style="padding: 10px 12px; color: #64748B;">Selling GST</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.sellingTaxA)}</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.sellingTaxB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.sellingTaxAmount, report.titleA, report.titleB)}</td>
           </tr>
           <tr style="background-color: #FFFFFF;">
             <td style="padding: 10px 12px; color: #64748B;">ITC Treatment</td>
             <td style="padding: 10px 12px; text-align: right;">${report.itcTreatmentA}</td>
             <td style="padding: 10px 12px; text-align: right;">${report.itcTreatmentB}</td>
+            <td style="padding: 10px 12px; text-align: right; color: #94A3B8;">-</td>
           </tr>
         </tbody>
       </table>
@@ -392,7 +404,7 @@ object HtmlEmailFormatter {
       </table>
     </div>
 
-    <!-- Side-by-Side Table -->
+    <!-- Side-by-Side Table with Differences -->
     <div style="padding: 20px 24px;">
       <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
         <thead>
@@ -400,6 +412,7 @@ object HtmlEmailFormatter {
             <th style="padding: 10px 12px; text-align: left; color: #475569;">Metric</th>
             <th style="padding: 10px 12px; text-align: right; color: #1A365D;">$escapedA</th>
             <th style="padding: 10px 12px; text-align: right; color: #1A365D;">$escapedB</th>
+            <th style="padding: 10px 12px; text-align: right; color: #1E40AF;">Difference (B - A)</th>
           </tr>
         </thead>
         <tbody>
@@ -407,36 +420,43 @@ object HtmlEmailFormatter {
             <td style="padding: 10px 12px; color: #64748B;">Purchase PTR</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.ptrA)}</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.ptrB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.ptr, report.supplierNameA, report.supplierNameB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC;">
             <td style="padding: 10px 12px; color: #64748B;">Purchase Tax Rate</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatPercentage(report.purchaseTaxRateA)}</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatPercentage(report.purchaseTaxRateB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.purchaseTaxRate, report.supplierNameA, report.supplierNameB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0;">
             <td style="padding: 10px 12px; color: #64748B;">Cost per Unit</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold;">${IndianCurrencyFormatter.formatCurrency(report.costPerUnitA)}</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold;">${IndianCurrencyFormatter.formatCurrency(report.costPerUnitB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.costPerUnit, report.supplierNameA, report.supplierNameB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC;">
             <td style="padding: 10px 12px; color: #64748B;">Cost per Pack</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.costPerPackA)}</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatCurrency(report.costPerPackB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.costPerPack, report.supplierNameA, report.supplierNameB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0;">
             <td style="padding: 10px 12px; color: #64748B;">Profit per Unit</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: #15803D;">${formatSignedCurrency(report.profitPerUnitA)}</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: #15803D;">${formatSignedCurrency(report.profitPerUnitB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.profitPerUnit, report.supplierNameA, report.supplierNameB)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC;">
             <td style="padding: 10px 12px; color: #64748B;">Profit Margin</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold;">${IndianCurrencyFormatter.formatPercentage(report.profitMarginA)}</td>
             <td style="padding: 10px 12px; text-align: right; font-weight: bold;">${IndianCurrencyFormatter.formatPercentage(report.profitMarginB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.profitMargin, report.supplierNameA, report.supplierNameB)}</td>
           </tr>
           <tr style="background-color: #FFFFFF;">
             <td style="padding: 10px 12px; color: #64748B;">Markup</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatPercentage(report.markupA)}</td>
             <td style="padding: 10px 12px; text-align: right;">${IndianCurrencyFormatter.formatPercentage(report.markupB)}</td>
+            <td style="padding: 10px 12px; text-align: right;">${formatDifferenceCell(report.differences?.markup, report.supplierNameA, report.supplierNameB)}</td>
           </tr>
         </tbody>
       </table>
@@ -449,6 +469,28 @@ object HtmlEmailFormatter {
   </div>
 </body>
 </html>"""
+    }
+
+    private fun formatDifferenceCell(diff: MetricDifference?, labelA: String, labelB: String): String {
+        if (diff == null || !diff.isDefined) return "<span style=\"color: #94A3B8;\">-</span>"
+        if (diff.isTie) return "<span style=\"color: #64748B;\">Tie (0.00)</span>"
+
+        val signed = escapeHtml(diff.formatCompactSigned())
+        val narrative = when (diff.favourabilityRule) {
+            FavourabilityRule.LOWER_IS_BETTER -> {
+                val cheaper = escapeHtml(if (diff.lowerSide == WinnerSide.SIDE_A) labelA else labelB)
+                "<div style=\"font-size: 11px; color: #15803D; font-weight: normal;\">$cheaper cheaper</div>"
+            }
+            FavourabilityRule.HIGHER_IS_BETTER -> {
+                val winner = escapeHtml(if (diff.higherSide == WinnerSide.SIDE_A) labelA else labelB)
+                "<div style=\"font-size: 11px; color: #15803D; font-weight: normal;\">$winner +higher</div>"
+            }
+            FavourabilityRule.NEUTRAL -> {
+                val higher = escapeHtml(if (diff.higherSide == WinnerSide.SIDE_A) labelA else labelB)
+                "<div style=\"font-size: 11px; color: #64748B; font-weight: normal;\">$higher +higher</div>"
+            }
+        }
+        return "<div><strong>$signed</strong>$narrative</div>"
     }
 
     private fun winnerLabel(winner: WinnerSide, nameA: String, nameB: String): String {

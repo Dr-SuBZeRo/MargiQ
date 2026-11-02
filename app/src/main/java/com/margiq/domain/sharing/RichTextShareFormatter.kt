@@ -119,42 +119,72 @@ object RichTextShareFormatter {
             appendLine("• Highest Margin: *${winnerLabel(report.highestMarginWinner, report.titleA, report.titleB)}*")
             appendLine(DIVIDER)
 
-            // Side-by-side
-            appendLine("📊 *SIDE-BY-SIDE METRICS*")
+            // Side-by-side & differences
+            appendLine("📊 *SIDE-BY-SIDE METRICS & DIFFERENCES*")
             appendLine()
-            appendLine("*Cost per Unit:*")
+            appendLine("💰 *Cost per Unit:*")
             appendLine("  ${report.titleA}: ${IndianCurrencyFormatter.formatCurrency(report.costPerUnitA)}")
             appendLine("  ${report.titleB}: ${IndianCurrencyFormatter.formatCurrency(report.costPerUnitB)}")
+            report.differences?.costPerUnit?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()} (${diff.formatAbsolute()})")
+                appendLine("  ➡️ ${diff.formatNarrative(report.titleA, report.titleB)}")
+            }
             appendLine()
-            appendLine("*Cost per Pack:*")
+            appendLine("📦 *Cost per Pack:*")
             appendLine("  ${report.titleA}: ${IndianCurrencyFormatter.formatCurrency(report.costPerPackA)}")
             appendLine("  ${report.titleB}: ${IndianCurrencyFormatter.formatCurrency(report.costPerPackB)}")
+            report.differences?.costPerPack?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()} (${diff.formatAbsolute()})")
+                appendLine("  ➡️ ${diff.formatNarrative(report.titleA, report.titleB)}")
+            }
             appendLine()
-            appendLine("*Selling Price (MRP):*")
+            appendLine("🛒 *Selling Price (MRP):*")
             appendLine("  ${report.titleA}: ${IndianCurrencyFormatter.formatCurrency(report.sellingPriceA)}")
             appendLine("  ${report.titleB}: ${IndianCurrencyFormatter.formatCurrency(report.sellingPriceB)}")
+            report.differences?.customerSellingPrice?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()} (${diff.formatAbsolute()})")
+                appendLine("  ➡️ ${diff.formatNarrative(report.titleA, report.titleB)}")
+            }
             appendLine()
-            appendLine("*Profit per Unit:*")
+            appendLine("💚 *Profit per Unit:*")
             appendLine("  ${report.titleA}: ${formatSignedCurrency(report.profitPerUnitA)}")
             appendLine("  ${report.titleB}: ${formatSignedCurrency(report.profitPerUnitB)}")
+            report.differences?.profitPerUnit?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()} (${diff.formatAbsolute()})")
+                appendLine("  ➡️ ${diff.formatNarrative(report.titleA, report.titleB)}")
+            }
             appendLine()
-            appendLine("*Profit Margin:*")
+            appendLine("📈 *Profit Margin:*")
             appendLine("  ${report.titleA}: ${IndianCurrencyFormatter.formatPercentage(report.profitMarginA)}")
             appendLine("  ${report.titleB}: ${IndianCurrencyFormatter.formatPercentage(report.profitMarginB)}")
+            report.differences?.profitMargin?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()}")
+                appendLine("  ➡️ ${diff.formatNarrative(report.titleA, report.titleB)}")
+            }
             appendLine()
-            appendLine("*Markup:*")
+            appendLine("📈 *Markup:*")
             appendLine("  ${report.titleA}: ${IndianCurrencyFormatter.formatPercentage(report.markupA)}")
             appendLine("  ${report.titleB}: ${IndianCurrencyFormatter.formatPercentage(report.markupB)}")
+            report.differences?.markup?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()}")
+                appendLine("  ➡️ ${diff.formatNarrative(report.titleA, report.titleB)}")
+            }
             appendLine()
-            appendLine("*Purchase GST:*")
+            appendLine("⚖️ *Purchase GST:*")
             appendLine("  ${report.titleA}: ${IndianCurrencyFormatter.formatCurrency(report.purchaseTaxA)}")
             appendLine("  ${report.titleB}: ${IndianCurrencyFormatter.formatCurrency(report.purchaseTaxB)}")
+            report.differences?.purchaseTaxAmount?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()}")
+            }
             appendLine()
-            appendLine("*Selling GST:*")
+            appendLine("⚖️ *Selling GST:*")
             appendLine("  ${report.titleA}: ${IndianCurrencyFormatter.formatCurrency(report.sellingTaxA)}")
             appendLine("  ${report.titleB}: ${IndianCurrencyFormatter.formatCurrency(report.sellingTaxB)}")
+            report.differences?.sellingTaxAmount?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()}")
+            }
             appendLine()
-            appendLine("*ITC Treatment:*")
+            appendLine("ℹ️ *ITC Treatment:*")
             appendLine("  ${report.titleA}: ${report.itcTreatmentA}")
             appendLine("  ${report.titleB}: ${report.itcTreatmentB}")
             appendLine(DIVIDER)
@@ -198,36 +228,63 @@ object RichTextShareFormatter {
             appendLine("• Highest Margin: *${winnerLabel(report.highestMarginWinner, report.supplierNameA, report.supplierNameB)}*")
             appendLine(DIVIDER)
 
-            // Supplier offer metrics
-            appendLine("📊 *SUPPLIER OFFER METRICS*")
+            // Supplier offer metrics & differences
+            appendLine("📊 *SUPPLIER OFFER METRICS & DIFFERENCES*")
             appendLine()
-            appendLine("*PTR (Purchase Price):*")
+            appendLine("🏷️ *PTR (Purchase Price):*")
             appendLine("  ${report.supplierNameA}: ${IndianCurrencyFormatter.formatCurrency(report.ptrA)} (${report.purchasePriceModeA.label})")
             appendLine("  ${report.supplierNameB}: ${IndianCurrencyFormatter.formatCurrency(report.ptrB)} (${report.purchasePriceModeB.label})")
+            report.differences?.ptr?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()} (${diff.formatAbsolute()})")
+                appendLine("  ➡️ ${diff.formatNarrative(report.supplierNameA, report.supplierNameB)}")
+            }
             appendLine()
-            appendLine("*Purchase GST Rate:*")
+            appendLine("⚖️ *Purchase GST Rate:*")
             appendLine("  ${report.supplierNameA}: ${IndianCurrencyFormatter.formatPercentage(report.purchaseTaxRateA)}")
             appendLine("  ${report.supplierNameB}: ${IndianCurrencyFormatter.formatPercentage(report.purchaseTaxRateB)}")
+            report.differences?.purchaseTaxRate?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()}")
+            }
             appendLine()
-            appendLine("*Cost per Unit:*")
+            appendLine("💰 *Cost per Unit:*")
             appendLine("  ${report.supplierNameA}: ${IndianCurrencyFormatter.formatCurrency(report.costPerUnitA)}")
             appendLine("  ${report.supplierNameB}: ${IndianCurrencyFormatter.formatCurrency(report.costPerUnitB)}")
+            report.differences?.costPerUnit?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()} (${diff.formatAbsolute()})")
+                appendLine("  ➡️ ${diff.formatNarrative(report.supplierNameA, report.supplierNameB)}")
+            }
             appendLine()
-            appendLine("*Cost per Pack:*")
+            appendLine("📦 *Cost per Pack:*")
             appendLine("  ${report.supplierNameA}: ${IndianCurrencyFormatter.formatCurrency(report.costPerPackA)}")
             appendLine("  ${report.supplierNameB}: ${IndianCurrencyFormatter.formatCurrency(report.costPerPackB)}")
+            report.differences?.costPerPack?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()} (${diff.formatAbsolute()})")
+                appendLine("  ➡️ ${diff.formatNarrative(report.supplierNameA, report.supplierNameB)}")
+            }
             appendLine()
-            appendLine("*Profit per Unit:*")
+            appendLine("💚 *Profit per Unit:*")
             appendLine("  ${report.supplierNameA}: ${formatSignedCurrency(report.profitPerUnitA)}")
             appendLine("  ${report.supplierNameB}: ${formatSignedCurrency(report.profitPerUnitB)}")
+            report.differences?.profitPerUnit?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()} (${diff.formatAbsolute()})")
+                appendLine("  ➡️ ${diff.formatNarrative(report.supplierNameA, report.supplierNameB)}")
+            }
             appendLine()
-            appendLine("*Profit Margin:*")
+            appendLine("📈 *Profit Margin:*")
             appendLine("  ${report.supplierNameA}: ${IndianCurrencyFormatter.formatPercentage(report.profitMarginA)}")
             appendLine("  ${report.supplierNameB}: ${IndianCurrencyFormatter.formatPercentage(report.profitMarginB)}")
+            report.differences?.profitMargin?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()}")
+                appendLine("  ➡️ ${diff.formatNarrative(report.supplierNameA, report.supplierNameB)}")
+            }
             appendLine()
-            appendLine("*Markup:*")
+            appendLine("📈 *Markup:*")
             appendLine("  ${report.supplierNameA}: ${IndianCurrencyFormatter.formatPercentage(report.markupA)}")
             appendLine("  ${report.supplierNameB}: ${IndianCurrencyFormatter.formatPercentage(report.markupB)}")
+            report.differences?.markup?.let { diff ->
+                appendLine("  • Difference: ${diff.formatSigned()}")
+                appendLine("  ➡️ ${diff.formatNarrative(report.supplierNameA, report.supplierNameB)}")
+            }
             appendLine(DIVIDER)
 
             // Footer

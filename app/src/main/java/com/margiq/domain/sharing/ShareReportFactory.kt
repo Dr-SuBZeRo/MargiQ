@@ -137,6 +137,7 @@ object ShareReportFactory {
             highestMarginWinner = hl?.highestMarginSide ?: WinnerSide.NONE,
             primaryHighlightSummary = primarySummary,
             secondaryHighlightSummary = null,
+            differences = outcome.differences,
             title = "Product Comparison: $nameA vs $nameB"
         )
     }
@@ -201,6 +202,7 @@ object ShareReportFactory {
             highestMarginWinner = hl?.highestMarginSide ?: WinnerSide.NONE,
             primaryHighlightSummary = primarySummary,
             secondaryHighlightSummary = null,
+            differences = outcome.differences,
             title = if (base.productName.isNotBlank()) "Supplier Comparison — ${base.productName}" else "Supplier Comparison Report"
         )
     }
