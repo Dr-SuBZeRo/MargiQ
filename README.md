@@ -5,7 +5,7 @@
   <br />
 
   <a href="https://github.com/Dr-SuBZeRo/MargiQ/releases/latest"><img src="https://img.shields.io/github/v/release/Dr-SuBZeRo/MargiQ?style=for-the-badge&logo=android&logoColor=white&label=LATEST%20RELEASE&color=0F9D78" alt="Latest release" /></a>
-  <a href="https://img.shields.io/github/actions/workflow/status/Dr-SuBZeRo/MargiQ/android.yml?branch=main"><img src="https://img.shields.io/github/actions/workflow/status/Dr-SuBZeRo/MargiQ/android.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=BUILD" alt="Build status" /></a>
+  <a href="https://github.com/Dr-SuBZeRo/MargiQ/actions/workflows/android.yml"><img src="https://img.shields.io/github/actions/workflow/status/Dr-SuBZeRo/MargiQ/android.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=BUILD" alt="Build status" /></a>
   <a href="https://github.com/Dr-SuBZeRo/MargiQ"><img src="https://img.shields.io/github/stars/Dr-SuBZeRo/MargiQ?style=for-the-badge&logo=github&color=20232A" alt="GitHub stars" /></a>
   <a href="https://github.com/Dr-SuBZeRo/MargiQ/issues"><img src="https://img.shields.io/github/issues/Dr-SuBZeRo/MargiQ?style=for-the-badge&logo=github&color=E3A008" alt="Open issues" /></a>
 
