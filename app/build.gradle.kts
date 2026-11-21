@@ -14,8 +14,8 @@ android {
         applicationId = "com.margiq"
         minSdk = 26
         targetSdk = 36
-        versionCode = 16
-        versionName = "2.3.0"
+        versionCode = 17
+        versionName = "2.3.1"
 
         val disableUpdateChecker = (project.findProperty("disableUpdateChecker") as? String)?.toBoolean()
             ?: project.hasProperty("disableUpdateChecker")
