@@ -1,6 +1,9 @@
 package com.margiq.ui.settings
 
 import android.os.Build
+import com.margiq.BuildConfig
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -22,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -29,6 +33,8 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
@@ -53,6 +59,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -61,7 +68,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -71,6 +80,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.margiq.data.preferences.ThemePreference
+import com.margiq.domain.backup.BackupFileManager
+import com.margiq.domain.backup.ImportMode
 import com.margiq.domain.model.PurchaseTaxClassification
 import com.margiq.domain.model.TaxPriceMode
 import com.margiq.ui.components.CleanNumberInputField
@@ -91,6 +102,18 @@ fun SettingsScreen(
     val versionInfo = remember { AppVersionHelper.getAppVersionInfo(context) }
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let { viewModel.exportHistory(context, it, versionInfo.versionName) }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { viewModel.prepareImport(context, it) }
+    }
 
     LaunchedEffect(uiState.userMessage) {
         uiState.userMessage?.let { message ->
@@ -284,10 +307,11 @@ fun SettingsScreen(
                         }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    if (BuildConfig.ENABLE_UPDATE_CHECKER) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                         OutlinedButton(
                             onClick = { UrlLauncher.openUrl(context, UrlLauncher.GITHUB_REPO_URL) },
                             modifier = Modifier.weight(1f),
@@ -572,10 +596,125 @@ fun SettingsScreen(
                             }
                         }
                     }
+                    } else {
+                        OutlinedButton(
+                            onClick = { UrlLauncher.openUrl(context, UrlLauncher.GITHUB_REPO_URL) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp).padding(end = 4.dp)
+                            )
+                            Text("Open GitHub Repository", maxLines = 1)
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Updates for this installation are managed automatically by F-Droid.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
-            // 4. PRIVACY & LOCAL STORAGE
+            // 4. CALCULATION HISTORY BACKUP
+            SettingsSectionCard(title = "Calculation History Backup", icon = Icons.Default.Backup) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Export your saved calculation history to a portable JSON backup file, or restore calculations from another device or distribution (including GitHub and F-Droid builds).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val filename = BackupFileManager.generateSuggestedExportFilename()
+                                exportLauncher.launch(filename)
+                            },
+                            modifier = Modifier.weight(1f),
+                            enabled = !uiState.isExportingBackup && !uiState.isImportingBackup,
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            if (uiState.isExportingBackup) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Exporting...", maxLines = 1)
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.FileUpload,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp).padding(end = 4.dp)
+                                )
+                                Text("Export History", maxLines = 1)
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                importLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
+                            },
+                            modifier = Modifier.weight(1f),
+                            enabled = !uiState.isExportingBackup && !uiState.isImportingBackup,
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            if (uiState.isImportingBackup) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Reading...", maxLines = 1)
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.FileDownload,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp).padding(end = 4.dp)
+                                )
+                                Text("Import Backup", maxLines = 1)
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = "• Schema v1 (portable JSON format)\n" +
+                                "• Completely offline — uses Android Storage Access Framework\n" +
+                                "• Full numerical precision preserved for audit trails",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                    )
+                }
+            }
+
+            // 5. PRIVACY & LOCAL STORAGE
             SettingsSectionCard(title = "Privacy & Local Storage", icon = Icons.Default.Lock) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -588,7 +727,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 5. ABOUT APP
+            // 6. ABOUT APP
             SettingsSectionCard(title = "About MargiQ", icon = Icons.Default.Info) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     MargiQBrandWordmark(
@@ -618,7 +757,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 6. CREATOR & VERSION FOOTER
+            // 7. CREATOR & VERSION FOOTER
             HorizontalDivider(
                 modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
@@ -676,6 +815,150 @@ fun SettingsScreen(
             dismissButton = {
                 TextButton(onClick = { viewModel.cancelResetDefaults() }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Import Preview & Confirmation Dialog
+    val pendingImport = uiState.pendingImportPreview
+    if (pendingImport != null) {
+        var selectedMode by remember { mutableStateOf(ImportMode.MERGE) }
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelImport() },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Backup,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp).padding(end = 8.dp)
+                    )
+                    Text("Import Calculation History")
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Backup contains ${pendingImport.document.recordCount} calculation record${if (pendingImport.document.recordCount > 1) "s" else ""} (from MargiQ v${pendingImport.document.appVersion}).",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Text(
+                        text = "Currently saved records on this device: ${pendingImport.existingRecordCount}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+
+                    Text(
+                        text = "Choose import strategy:",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+
+                    // Merge option
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { selectedMode = ImportMode.MERGE }
+                            .padding(vertical = 4.dp, horizontal = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedMode == ImportMode.MERGE,
+                            onClick = { selectedMode = ImportMode.MERGE }
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Merge (Recommended)",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                            Text(
+                                text = "Appends new calculations. Duplicate records matching existing timestamp and figures are skipped.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Replace option
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { selectedMode = ImportMode.REPLACE }
+                            .padding(vertical = 4.dp, horizontal = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedMode == ImportMode.REPLACE,
+                            onClick = { selectedMode = ImportMode.REPLACE }
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Replace All",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = "Deletes all current calculation history and replaces it with records from the backup file.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.confirmImport(selectedMode) },
+                    colors = if (selectedMode == ImportMode.REPLACE) {
+                        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    } else {
+                        ButtonDefaults.buttonColors()
+                    }
+                ) {
+                    Text(if (selectedMode == ImportMode.REPLACE) "Replace All" else "Merge Records")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelImport() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Backup Error Dialog
+    if (uiState.backupErrorMessage != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissBackupError() },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp).padding(end = 6.dp)
+                    )
+                    Text("Backup Operation Failed")
+                }
+            },
+            text = {
+                Text(
+                    text = uiState.backupErrorMessage ?: "An unknown error occurred during backup.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissBackupError() }) {
+                    Text("OK")
                 }
             }
         )

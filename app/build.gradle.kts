@@ -16,6 +16,10 @@ android {
         targetSdk = 36
         versionCode = 16
         versionName = "2.3.0"
+
+        val disableUpdateChecker = (project.findProperty("disableUpdateChecker") as? String)?.toBoolean()
+            ?: project.hasProperty("disableUpdateChecker")
+        buildConfigField("boolean", "ENABLE_UPDATE_CHECKER", (!disableUpdateChecker).toString())
     }
 
     val keystorePropertiesFile = listOf(
@@ -146,8 +150,10 @@ dependencies {
   // Local tests: jUnit, coroutines, Android runner, SQLite JDBC
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation(libs.androidx.test.core)
   testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
   testImplementation("org.json:json:20240303")
+  testImplementation("org.robolectric:robolectric:4.14.1")
 
   // Instrumented tests: jUnit rules and runners
   androidTestImplementation(libs.androidx.test.core)
