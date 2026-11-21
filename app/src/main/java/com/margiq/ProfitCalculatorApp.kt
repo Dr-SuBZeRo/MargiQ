@@ -8,6 +8,9 @@ import com.margiq.data.repository.CalculationRepository
 
 class ProfitCalculatorApp : Application() {
 
+    lateinit var database: AppDatabase
+        private set
+
     lateinit var calculationRepository: CalculationRepository
         private set
 
@@ -16,7 +19,7 @@ class ProfitCalculatorApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        val database = AppDatabase.getDatabase(this)
+        database = AppDatabase.getDatabase(this)
         calculationRepository = CalculationRepository(database.calculationDao())
         preferencesRepository = PreferencesRepository(dataStore)
     }

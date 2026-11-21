@@ -14,6 +14,10 @@ class CalculationRepository(private val dao: CalculationDao) {
 
     suspend fun getCalculationById(id: Long): CalculationEntity? = dao.getCalculationById(id)
 
+    suspend fun getAllCalculationsList(): List<CalculationEntity> = dao.getAllCalculationsList()
+
+    suspend fun insertCalculations(entities: List<CalculationEntity>): List<Long> = dao.insertCalculations(entities)
+
     suspend fun saveCalculation(
         input: CalculationInput,
         result: CalculationResult,

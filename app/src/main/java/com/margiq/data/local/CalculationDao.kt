@@ -20,8 +20,14 @@ interface CalculationDao {
     @Query("SELECT * FROM calculations WHERE id = :id LIMIT 1")
     suspend fun getCalculationById(id: Long): CalculationEntity?
 
+    @Query("SELECT * FROM calculations ORDER BY timestamp DESC")
+    suspend fun getAllCalculationsList(): List<CalculationEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCalculation(entity: CalculationEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCalculations(entities: List<CalculationEntity>): List<Long>
 
     @Update
     suspend fun updateCalculation(entity: CalculationEntity): Int

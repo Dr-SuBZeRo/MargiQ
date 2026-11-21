@@ -339,6 +339,9 @@ class CalculatorViewModelTest {
         override fun searchCalculations(query: String): Flow<List<CalculationEntity>> =
             flowOf(items.filter { it.productName.contains(query, ignoreCase = true) || it.supplierName.contains(query, ignoreCase = true) })
         override suspend fun getCalculationById(id: Long): CalculationEntity? = items.find { it.id == id }
+        override suspend fun getAllCalculationsList(): List<CalculationEntity> = items.toList()
+        override suspend fun insertCalculations(entities: List<CalculationEntity>): List<Long> =
+            entities.map { insertCalculation(it) }
         override suspend fun insertCalculation(entity: CalculationEntity): Long {
             val assignedId = if (entity.id == 0L) idCounter++ else entity.id
             val copy = entity.copy(id = assignedId)

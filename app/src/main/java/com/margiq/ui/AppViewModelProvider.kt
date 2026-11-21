@@ -1,4 +1,4 @@
-﻿package com.margiq.ui
+package com.margiq.ui
 
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
@@ -28,7 +28,9 @@ object AppViewModelProvider {
         initializer {
             val app = profitCalculatorApp()
             SettingsViewModel(
-                preferencesRepository = app.preferencesRepository
+                preferencesRepository = app.preferencesRepository,
+                calculationRepository = app.calculationRepository,
+                database = app.database
             )
         }
         initializer {
