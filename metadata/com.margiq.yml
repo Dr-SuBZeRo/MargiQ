@@ -1,0 +1,40 @@
+Categories:
+  - Money
+  - Office
+License: Apache-2.0
+AuthorName: SuBZeRo
+SourceCode: https://github.com/Dr-SuBZeRo/MargiQ
+IssueTracker: https://github.com/Dr-SuBZeRo/MargiQ/issues
+Changelog: https://github.com/Dr-SuBZeRo/MargiQ/releases
+
+AutoName: MargiQ
+Summary: Offline pharmaceutical price and profit margin calculator
+Description: |-
+  MargiQ is a focused, offline-first commercial pricing and profitability intelligence
+  tool for pharmaceutical retailers, distributors, and stockists in India.
+
+  Features:
+  * Deterministic arbitrary-precision decimal calculations (PTR, PTS, GST, discounts).
+  * On-device calculation history stored locally in SQLite with zero server requirements.
+  * Versioned plaintext JSON export and import with canonical TLV deduplication.
+  * Atomic database import transactions with automatic rollback protection.
+  * Zero analytics, zero advertising networks, and zero telemetry SDKs.
+
+RepoType: git
+Repo: https://github.com/Dr-SuBZeRo/MargiQ.git
+
+Builds:
+  - versionName: 2.3.1
+    versionCode: 17
+    commit: 3ce95387a586391ea6c05442a294a95b59eec42c
+    subdir: app
+    gradle:
+      - yes
+    gradleprops:
+      - disableUpdateChecker=true
+    output: build/outputs/apk/release/app-release-unsigned.apk
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 2.3.1
+CurrentVersionCode: 17
