@@ -425,6 +425,11 @@ For code contributions, please keep financial logic in the domain layer, add reg
 
 Detailed release documentation is available in [docs/releases](docs/releases/).
 
+## 📄 Licence
+
+MargiQ is free and open-source software licensed under the [Apache License, Version 2.0](LICENSE).
+Copyright 2026 SuBZeRo.
+
 ---
 
 <div align="center">
