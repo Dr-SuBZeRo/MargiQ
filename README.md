@@ -1,5 +1,7 @@
 <div align="center">
 
+  <a href="https://dr-subzero.github.io/"><img src="https://img.shields.io/badge/Developer%20Website-SuBZeRo-0EA5E9?style=for-the-badge&logo=googlechrome&logoColor=white" alt="SuBZeRo developer website" /></a>
+
   <img src="https://capsule-render.vercel.app/api?type=venom&height=260&color=0:07111F,38:123B5D,72:0F766E,100:16A085&text=MargiQ&fontColor=F8FAFC&fontSize=76&fontAlignY=42&desc=Know%20your%20cost.%20Own%20your%20margin.&descAlignY=62&descSize=18&animation=fadeIn" width="100%" alt="MargiQ animated banner" />
 
   <br />
