@@ -157,69 +157,6 @@ It goes beyond a simple markup calculator. MargiQ helps you understand the **act
   </table>
 </div>
 
-## 📣 Promotional posters & feature artwork
-
-The following promotional creatives are stored in the repository's `image/` folder. They are presented here as **marketing artwork**, not as verified in-app screenshots.
-
-<div align="center">
-  <table>
-    <tr>
-      <td align="center" width="50%">
-        <a href="image/a_clean_modern_promotional_poster_for_margiq_open.png">
-          <img src="image/a_clean_modern_promotional_poster_for_margiq_open.png" width="100%" alt="MargiQ clean modern promotional poster" />
-        </a>
-        <b>MargiQ — Promotional poster</b>
-      </td>
-      <td align="center" width="50%">
-        <a href="image/a_large_marketing_promo_collage_for_the_android_ap.png">
-          <img src="image/a_large_marketing_promo_collage_for_the_android_ap.png" width="100%" alt="MargiQ Android app marketing collage" />
-        </a>
-        <b>Android app — Marketing collage</b>
-      </td>
-    </tr>
-    <tr>
-      <td align="center" width="50%">
-        <a href="image/a_polished_high_contrast_promotional_banner_for_a.png">
-          <img src="image/a_polished_high_contrast_promotional_banner_for_a.png" width="100%" alt="MargiQ high contrast promotional banner" />
-        </a>
-        <b>Promotional banner</b>
-      </td>
-      <td align="center" width="50%">
-        <a href="image/a_polished_promotional_feature_poster_for_the_marg.png">
-          <img src="image/a_polished_promotional_feature_poster_for_the_marg.png" width="100%" alt="MargiQ feature promotional poster" />
-        </a>
-        <b>Feature poster</b>
-      </td>
-    </tr>
-    <tr>
-      <td align="center" width="50%">
-        <a href="image/a_polished_promotional_poster_for_margiq_app_a_cl.png">
-          <img src="image/a_polished_promotional_poster_for_margiq_app_a_cl.png" width="100%" alt="MargiQ clean app promotional poster" />
-        </a>
-        <b>App promotional poster</b>
-      </td>
-      <td align="center" width="50%">
-        <a href="image/a_polished_promotional_poster_for_the_margiq_app_i.png">
-          <img src="image/a_polished_promotional_poster_for_the_margiq_app_i.png" width="100%" alt="MargiQ app promotional creative" />
-        </a>
-        <b>App promotional creative</b>
-      </td>
-    </tr>
-    <tr>
-      <td align="center" width="50%">
-        <a href="image/a_professional_marketing_poster_for_an_app._overal.png">
-          <img src="image/a_professional_marketing_poster_for_an_app._overal.png" width="100%" alt="MargiQ overall professional marketing poster" />
-        </a>
-        <b>Overall marketing poster</b>
-      </td>
-      <td width="50%"></td>
-    </tr>
-  </table>
-  <p><sub>Select any poster to open the original full-resolution image from the repository.</sub></p>
-</div>
-
-> **In-app screenshots:** This gallery contains promotional artwork. Actual app screenshots should be added separately when verified device captures are available.
-
 ## 🧾 How the calculations work
 
 MargiQ keeps purchase economics and sales economics distinct. The exact result depends on the selected tax mode, tax classification, ITC eligibility, discount and offer configuration.
