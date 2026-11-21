@@ -26,7 +26,7 @@ Repo: https://github.com/Dr-SuBZeRo/MargiQ.git
 Builds:
   - versionName: 2.3.1
     versionCode: 17
-    commit: 3ce95387a586391ea6c05442a294a95b59eec42c
+    commit: c6dc25c568c0d71e6a173b14d4c9f6e8c2ef20d7
     subdir: app
     gradle:
       - yes
